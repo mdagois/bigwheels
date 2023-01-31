@@ -41,6 +41,7 @@ add_subdirectory(27_mipmap_demo)
 add_subdirectory(alloc)
 add_subdirectory(fishtornado)
 add_subdirectory(fluid_simulation)
+add_subdirectory(transparent_shadow)
 
 if (PPX_BUILD_XR)
 add_subdirectory(04_cube_xr)
