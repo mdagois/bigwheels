@@ -52,6 +52,22 @@ void TransparentShadowApp::Setup()
         grfx::QueuePtr queue = this->GetGraphicsQueue();
         TriMeshOptions options = TriMeshOptions().Indices();
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/monkey.obj"), &mMesh, options));
+
+        grfx::BufferCreateInfo bufferCreateInfo        = {};
+        bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
+        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
+        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mUniformBuffer));
+
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mDescriptorSetLayout, &mDescriptorSet));
+
+        grfx::WriteDescriptor write = {};
+        write.binding               = 0;
+        write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.bufferOffset          = 0;
+        write.bufferRange           = PPX_WHOLE_SIZE;
+        write.pBuffer               = mUniformBuffer;
+        PPX_CHECKED_CALL(mDescriptorSet->UpdateDescriptors(1, &write));
     }
 
     // Pipelines
@@ -87,9 +103,96 @@ void TransparentShadowApp::Setup()
         GetDevice()->DestroyShaderModule(VS);
         GetDevice()->DestroyShaderModule(PS);
     }
+
+    // Per frame data
+    {
+        PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&mFrame.cmd));
+
+        grfx::SemaphoreCreateInfo semaCreateInfo = {};
+        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mFrame.imageAcquiredSemaphore));
+
+        grfx::FenceCreateInfo fenceCreateInfo = {};
+        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mFrame.imageAcquiredFence));
+
+        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mFrame.renderCompleteSemaphore));
+
+        fenceCreateInfo.signaled = true;
+        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mFrame.renderCompleteFence));
+    }
 }
 
 void TransparentShadowApp::Render()
 {
+    PerFrame& frame = mFrame;
+
+    grfx::SwapchainPtr swapchain = GetSwapchain();
+
+    uint32_t imageIndex = UINT32_MAX;
+    PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
+
+    // Wait for and reset image acquired fence
+    PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
+
+    // Wait for and reset render complete fence
+    PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
+
+    // Update uniform buffer
+    {
+        float    t = GetElapsedSeconds();
+        float4x4 P = glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f);
+        float4x4 V = glm::lookAt(float3(0, 0, 8), float3(0, 0, 0), float3(0, 1, 0));
+        float4x4 M = glm::rotate(t, float3(0, 0, 1)) * glm::rotate(2 * t, float3(0, 1, 0)) * glm::rotate(t, float3(1, 0, 0)) * glm::scale(float3(2));
+
+        float4x4 T   = glm::translate(float3(0, 0, 0));
+        float4x4 mat = P * V * T * M;
+        mUniformBuffer->CopyFromSource(sizeof(mat), &mat);
+    }
+
+    // Build command buffer
+    PPX_CHECKED_CALL(frame.cmd->Begin());
+    {
+        grfx::RenderPassPtr renderPass = swapchain->GetRenderPass(imageIndex);
+        PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
+
+        grfx::RenderPassBeginInfo beginInfo = {};
+        beginInfo.pRenderPass               = renderPass;
+        beginInfo.renderArea                = renderPass->GetRenderArea();
+        beginInfo.RTVClearCount             = 1;
+        beginInfo.RTVClearValues[0]         = {{0, 0, 0, 0}};
+        beginInfo.DSVClearValue             = {1.0f, 0xFF};
+
+        frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
+        frame.cmd->BeginRenderPass(&beginInfo);
+        {
+            frame.cmd->SetScissors(GetScissor());
+            frame.cmd->SetViewports(GetViewport());
+
+            frame.cmd->BindGraphicsPipeline(mPipeline);
+            frame.cmd->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mDescriptorSet);
+            frame.cmd->BindIndexBuffer(mMesh);
+            frame.cmd->BindVertexBuffers(mMesh);
+            frame.cmd->DrawIndexed(mMesh->GetIndexCount());
+
+            // Draw ImGui
+            DrawDebugInfo();
+            DrawImGui(frame.cmd);
+        }
+        frame.cmd->EndRenderPass();
+        frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
+    }
+    PPX_CHECKED_CALL(frame.cmd->End());
+
+    grfx::SubmitInfo submitInfo     = {};
+    submitInfo.commandBufferCount   = 1;
+    submitInfo.ppCommandBuffers     = &frame.cmd;
+    submitInfo.waitSemaphoreCount   = 1;
+    submitInfo.ppWaitSemaphores     = &frame.imageAcquiredSemaphore;
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.ppSignalSemaphores   = &frame.renderCompleteSemaphore;
+    submitInfo.pFence               = frame.renderCompleteFence;
+
+    PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
+
+    PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
 }
 

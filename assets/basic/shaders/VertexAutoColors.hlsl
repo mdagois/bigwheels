@@ -38,7 +38,7 @@ VSOutput vsmain(float4 Position : POSITION)
 {
 	VSOutput result;
 	result.Position = mul(Transform.M, Position);
-	result.Color = Position.xyz;
+	result.Color = abs(Position.xyz);
 	return result;
 }
 

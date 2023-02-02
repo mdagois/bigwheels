@@ -22,5 +22,5 @@ add_samples_for_all_apis(
     "TransparentShadowApplication.cpp"
     "main.cpp"
     SHADER_DEPENDENCIES
-    "shader_static_vertex_colors"
+    "shader_vertex_auto_colors"
 )
