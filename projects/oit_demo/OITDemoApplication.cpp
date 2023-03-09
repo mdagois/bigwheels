@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "TransparentShadowApplication.h"
+#include "OITDemoApplication.h"
 #include "ppx/graphics_util.h"
 
-void TransparentShadowApp::Config(ppx::ApplicationSettings& settings)
+void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName                    = "Transparent Shadow";
+    settings.appName                    = "OIT demo";
     settings.enableImGui                = false;
     settings.grfx.api                   = kApi;
     settings.grfx.enableDebug           = false;
@@ -27,7 +27,7 @@ void TransparentShadowApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 }
 
-void TransparentShadowApp::Setup()
+void OITDemoApp::Setup()
 {
     // Descriptor pool
     {
@@ -121,7 +121,7 @@ void TransparentShadowApp::Setup()
     }
 }
 
-void TransparentShadowApp::Render()
+void OITDemoApp::Render()
 {
     PerFrame& frame = mFrame;
 

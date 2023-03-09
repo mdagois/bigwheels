@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "TransparentShadowApplication.h"
+#include "OITDemoApplication.h"
 
 int main(int argc, char** argv)
 {
-    TransparentShadowApp app;
+    OITDemoApp app;
     const int res = app.Run(argc, argv);
     return res;
 }

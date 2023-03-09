@@ -13,13 +13,13 @@
 # limitations under the License.
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
-project(transparent_shadow)
+project(oit_demo)
 
 add_samples_for_all_apis(
     NAME ${PROJECT_NAME}
     SOURCES
-    "TransparentShadowApplication.h"
-    "TransparentShadowApplication.cpp"
+    "OITDemoApplication.h"
+    "OITDemoApplication.cpp"
     "main.cpp"
     SHADER_DEPENDENCIES
     "shader_vertex_auto_colors"

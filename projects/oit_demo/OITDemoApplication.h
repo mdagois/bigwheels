@@ -23,7 +23,7 @@ const grfx::Api kApi = grfx::API_DX_12_0;
 const grfx::Api kApi = grfx::API_VK_1_1;
 #endif
 
-class TransparentShadowApp
+class OITDemoApp
     : public ppx::Application
 {
 public:
