@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-project(assets)
+generate_rules_for_shader(
+    "shader_vertex_auto_colors"
+    SOURCE "${PPX_DIR}/assets/oitdemo/shaders/VertexAutoColors.hlsl"
+    STAGES "ps" "vs")
 
-add_subdirectory(basic/shaders)
-add_subdirectory(benchmarks/shaders)
-add_subdirectory(fluid_simulation/shaders)
-add_subdirectory(fishtornado/shaders)
-add_subdirectory(gbuffer/shaders)
-add_subdirectory(materials/shaders)
-add_subdirectory(oitdemo/shaders)
+generate_group_rule_for_shader(
+    "shader_oitdemo"
+    CHILDREN
+    "shader_vertex_auto_colors"
+)
+

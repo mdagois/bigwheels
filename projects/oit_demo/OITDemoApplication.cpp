@@ -82,8 +82,8 @@ void OITDemoApp::Setup()
     // Pipelines
     {
         grfx::ShaderModulePtr VS, PS;
-        PPX_CHECKED_CALL(CreateShader("basic/shaders", "VertexAutoColors.vs", &VS));
-        PPX_CHECKED_CALL(CreateShader("basic/shaders", "VertexAutoColors.ps", &PS));
+        PPX_CHECKED_CALL(CreateShader("oitdemo/shaders", "VertexAutoColors.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oitdemo/shaders", "VertexAutoColors.ps", &PS));
 
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 1;

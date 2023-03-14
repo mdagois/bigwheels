@@ -13,7 +13,6 @@
 # limitations under the License.
 generate_rules_for_shader("shader_static_vertex_colors" SOURCE "${PPX_DIR}/assets/basic/shaders/StaticVertexColors.hlsl" STAGES "ps" "vs")
 generate_rules_for_shader("shader_vertex_colors" SOURCE "${PPX_DIR}/assets/basic/shaders/VertexColors.hlsl" STAGES "ps" "vs")
-generate_rules_for_shader("shader_vertex_auto_colors" SOURCE "${PPX_DIR}/assets/basic/shaders/VertexAutoColors.hlsl" STAGES "ps" "vs")
 generate_rules_for_shader("shader_texture" SOURCE "${PPX_DIR}/assets/basic/shaders/Texture.hlsl" STAGES "ps" "vs")
 generate_rules_for_shader("shader_compute_fill" SOURCE "${PPX_DIR}/assets/basic/shaders/ComputeFill.hlsl" STAGES "cs")
 generate_rules_for_shader("shader_cubemap" SOURCE "${PPX_DIR}/assets/basic/shaders/CubeMap.hlsl" STAGES "vs" "ps")

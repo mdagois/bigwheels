@@ -18,7 +18,7 @@ struct TransformData
     float4x4 M;
 };
 
-// ConstantBuffer was addd in SM5.1 for D3D12
+// ConstantBuffer was added in SM5.1 for D3D12
 //
 #if defined(PPX_D3D11)
 cbuffer Transform : register(b0)
@@ -29,7 +29,8 @@ cbuffer Transform : register(b0)
 ConstantBuffer<TransformData> Transform : register(b0);
 #endif // defined(PPX_D3D11)
 
-struct VSOutput {
+struct VSOutput
+{
 	float4 Position : SV_POSITION;
 	float3 Color    : COLOR;
 };
