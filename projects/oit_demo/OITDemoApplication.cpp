@@ -19,7 +19,15 @@ void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName                    = "OIT demo";
     settings.enableImGui                = false;
-    settings.grfx.api                   = kApi;
+#if defined(USE_DX11)
+    settings.grfx.api                   = grfx::API_DX_11_1;
+#elif defined(USE_DX12)
+    settings.grfx.api                   = grfx::API_DX_12_0;
+#elif defined(USE_VK)
+    settings.grfx.api                   = grfx::API_VK_1_1;
+#else
+# error
+#endif
     settings.grfx.enableDebug           = false;
 #if defined(USE_DXIL)
     settings.grfx.enableDXIL            = true;
