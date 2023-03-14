@@ -19,6 +19,9 @@ void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName                    = "OIT demo";
     settings.enableImGui                = false;
+    settings.grfx.enableDebug           = false;
+    settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
+
 #if defined(USE_DX11)
     settings.grfx.api                   = grfx::API_DX_11_1;
 #elif defined(USE_DX12)
@@ -28,11 +31,9 @@ void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 #else
 # error
 #endif
-    settings.grfx.enableDebug           = false;
 #if defined(USE_DXIL)
     settings.grfx.enableDXIL            = true;
 #endif
-    settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 }
 
 void OITDemoApp::Setup()
@@ -137,11 +138,7 @@ void OITDemoApp::Render()
 
     uint32_t imageIndex = UINT32_MAX;
     PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
-
-    // Wait for and reset image acquired fence
     PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
-
-    // Wait for and reset render complete fence
     PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
 
     // Update uniform buffer
@@ -190,6 +187,7 @@ void OITDemoApp::Render()
     }
     PPX_CHECKED_CALL(frame.cmd->End());
 
+    // Submit and present
     grfx::SubmitInfo submitInfo     = {};
     submitInfo.commandBufferCount   = 1;
     submitInfo.ppCommandBuffers     = &frame.cmd;
@@ -198,9 +196,7 @@ void OITDemoApp::Render()
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.ppSignalSemaphores   = &frame.renderCompleteSemaphore;
     submitInfo.pFence               = frame.renderCompleteFence;
-
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
-
     PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
 }
 
