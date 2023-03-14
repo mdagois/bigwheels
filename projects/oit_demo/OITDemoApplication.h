@@ -24,22 +24,21 @@ public:
     virtual void Render() override;
 
 private:
-    struct PerFrame
-    {
-        grfx::CommandBufferPtr cmd;
-        grfx::SemaphorePtr     imageAcquiredSemaphore;
-        grfx::FencePtr         imageAcquiredFence;
-        grfx::SemaphorePtr     renderCompleteSemaphore;
-        grfx::FencePtr         renderCompleteFence;
-    };
+    grfx::SemaphorePtr           mImageAcquiredSemaphore;
+    grfx::FencePtr               mImageAcquiredFence;
+    grfx::SemaphorePtr           mRenderCompleteSemaphore;
+    grfx::FencePtr               mRenderCompleteFence;
+
+    grfx::CommandBufferPtr       mCommandBuffer;
 
     grfx::DescriptorPoolPtr      mDescriptorPool;
     grfx::DescriptorSetLayoutPtr mDescriptorSetLayout;
+
     grfx::PipelineInterfacePtr   mPipelineInterface;
     grfx::GraphicsPipelinePtr    mPipeline;
+
     grfx::MeshPtr                mMesh;
     grfx::DescriptorSetPtr       mDescriptorSet;
     grfx::BufferPtr              mUniformBuffer;
-    PerFrame                     mFrame;
 };
 
