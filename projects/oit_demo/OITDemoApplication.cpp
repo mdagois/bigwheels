@@ -60,10 +60,10 @@ void OITDemoApp::Setup()
     {
         grfx::QueuePtr queue = this->GetGraphicsQueue();
         TriMeshOptions options = TriMeshOptions().Indices();
-        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/monkey.obj"), &mMesh, options));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/monkey.obj"), &mMonkeyMesh, options));
 
         grfx::BufferCreateInfo bufferCreateInfo        = {};
-        bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
+        bufferCreateInfo.size                          = std::max(sizeof(RenderParameters), static_cast<size_t>(PPX_MINIMUM_UNIFORM_BUFFER_SIZE));
         bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
         bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mUniformBuffer));
@@ -95,7 +95,7 @@ void OITDemoApp::Setup()
         gpCreateInfo.VS                                 = {VS, "vsmain"};
         gpCreateInfo.PS                                 = {PS, "psmain"};
         gpCreateInfo.vertexInputState.bindingCount      = 1;
-        gpCreateInfo.vertexInputState.bindings[0]       = mMesh->GetDerivedVertexBindings()[0];
+        gpCreateInfo.vertexInputState.bindings[0]       = mMonkeyMesh->GetDerivedVertexBindings()[0];
         gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
         gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
@@ -150,8 +150,10 @@ void OITDemoApp::Render()
     // Update uniform buffer
     {
         const float4x4 M = glm::rotate(time, float3(0, 0, 1)) * glm::rotate(2 * time, float3(0, 1, 0)) * glm::rotate(time, float3(1, 0, 0)) * glm::scale(float3(2));
-        const float4x4 PVM = PV * M;
-        mUniformBuffer->CopyFromSource(sizeof(PVM), &PVM);
+        RenderParameters renderParameters = {};
+        renderParameters.PVM = PV * M;
+        renderParameters.alpha = 1.0f;
+        mUniformBuffer->CopyFromSource(sizeof(renderParameters), &renderParameters);
     }
 
     // Build command buffer
@@ -175,9 +177,9 @@ void OITDemoApp::Render()
 
             mCommandBuffer->BindGraphicsPipeline(mPipeline);
             mCommandBuffer->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mDescriptorSet);
-            mCommandBuffer->BindIndexBuffer(mMesh);
-            mCommandBuffer->BindVertexBuffers(mMesh);
-            mCommandBuffer->DrawIndexed(mMesh->GetIndexCount());
+            mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
+            mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
+            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
 
             // Draw ImGui
             DrawDebugInfo();

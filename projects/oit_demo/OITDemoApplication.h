@@ -24,6 +24,13 @@ public:
     virtual void Render() override;
 
 private:
+    struct RenderParameters
+    {
+        float4x4 PVM;
+        float alpha;
+    };
+
+private:
     grfx::SemaphorePtr           mImageAcquiredSemaphore;
     grfx::FencePtr               mImageAcquiredFence;
     grfx::SemaphorePtr           mRenderCompleteSemaphore;
@@ -37,7 +44,7 @@ private:
     grfx::PipelineInterfacePtr   mPipelineInterface;
     grfx::GraphicsPipelinePtr    mPipeline;
 
-    grfx::MeshPtr                mMesh;
+    grfx::MeshPtr                mMonkeyMesh;
     grfx::DescriptorSetPtr       mDescriptorSet;
     grfx::BufferPtr              mUniformBuffer;
 };
