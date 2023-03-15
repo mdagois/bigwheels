@@ -12,24 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-struct RenderParameters
+#define IS_SHADER
+#include "Common.hlsli"
+
+struct VSOutput
 {
-    float4x4 backgroundMVP;
-    float4x4 meshMVP;
-    float meshAlpha;
+	float4 Position : SV_POSITION;
 };
 
-#if defined(IS_SHADER)
-
-// ConstantBuffer was added in SM5.1 for D3D12
-#if defined(PPX_D3D11)
-cbuffer Parameters : register(b0)
+VSOutput vsmain(float4 Position : POSITION)
 {
-    RenderParameters Parameters;
-};
-#else
-ConstantBuffer<RenderParameters> Parameters : register(b0);
-#endif
+	VSOutput result;
+	result.Position = mul(Parameters.backgroundMVP, Position);
+	return result;
+}
 
-#endif
+float4 psmain(VSOutput input) : SV_TARGET
+{
+	return (float4)1.0f;
+}
 

@@ -21,9 +21,16 @@ generate_rules_for_shader(
     INCLUDES ${INCLUDE_FILES}
     STAGES "ps" "vs")
 
+generate_rules_for_shader(
+    "background"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/Background.hlsl"
+    INCLUDES ${INCLUDE_FILES}
+    STAGES "ps" "vs")
+
 generate_group_rule_for_shader(
     "shader_oit_demo"
     CHILDREN
     "alpha_blending"
+    "background"
 )
 

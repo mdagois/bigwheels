@@ -12,17 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#define IS_SHADER
 #include "Common.hlsli"
-
-// ConstantBuffer was added in SM5.1 for D3D12
-#if defined(PPX_D3D11)
-cbuffer Parameters : register(b0)
-{
-    RenderParameters Parameters;
-};
-#else
-ConstantBuffer<RenderParameters> Parameters : register(b0);
-#endif
 
 struct VSOutput
 {

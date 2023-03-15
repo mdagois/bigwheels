@@ -61,8 +61,12 @@ void OITDemoApp::Setup()
     {
         grfx::QueuePtr queue = this->GetGraphicsQueue();
         TriMeshOptions options = TriMeshOptions().Indices();
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/cube.obj"), &mBackgroundMesh, options));
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/monkey.obj"), &mMonkeyMesh, options));
+    }
 
+    // Uniform buffer
+    {
         grfx::BufferCreateInfo bufferCreateInfo        = {};
         bufferCreateInfo.size                          = std::max(sizeof(RenderParameters), static_cast<size_t>(PPX_MINIMUM_UNIFORM_BUFFER_SIZE));
         bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
@@ -82,36 +86,71 @@ void OITDemoApp::Setup()
 
     // Pipelines
     {
-        grfx::ShaderModulePtr VS, PS;
-        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "AlphaBlending.vs", &VS));
-        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "AlphaBlending.ps", &PS));
+        {
+            grfx::ShaderModulePtr VS, PS;
+            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "AlphaBlending.vs", &VS));
+            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "AlphaBlending.ps", &PS));
 
-        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-        piCreateInfo.setCount                          = 1;
-        piCreateInfo.sets[0].set                       = 0;
-        piCreateInfo.sets[0].pLayout                   = mDescriptorSetLayout;
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mPipelineInterface));
+            grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+            piCreateInfo.setCount                          = 1;
+            piCreateInfo.sets[0].set                       = 0;
+            piCreateInfo.sets[0].pLayout                   = mDescriptorSetLayout;
+            PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mPipelineInterface));
 
-        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-        gpCreateInfo.VS                                 = {VS, "vsmain"};
-        gpCreateInfo.PS                                 = {PS, "psmain"};
-        gpCreateInfo.vertexInputState.bindingCount      = 1;
-        gpCreateInfo.vertexInputState.bindings[0]       = mMonkeyMesh->GetDerivedVertexBindings()[0];
-        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-        gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
-        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-        gpCreateInfo.depthReadEnable                    = true;
-        gpCreateInfo.depthWriteEnable                   = true;
-        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-        gpCreateInfo.outputState.renderTargetCount      = 1;
-        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-        gpCreateInfo.pPipelineInterface                 = mPipelineInterface;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipeline));
+            grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+            gpCreateInfo.VS                                 = {VS, "vsmain"};
+            gpCreateInfo.PS                                 = {PS, "psmain"};
+            gpCreateInfo.vertexInputState.bindingCount      = 1;
+            gpCreateInfo.vertexInputState.bindings[0]       = mMonkeyMesh->GetDerivedVertexBindings()[0];
+            gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+            gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+            gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+            gpCreateInfo.depthReadEnable                    = true;
+            gpCreateInfo.depthWriteEnable                   = true;
+            gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+            gpCreateInfo.outputState.renderTargetCount      = 1;
+            gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+            gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+            gpCreateInfo.pPipelineInterface                 = mPipelineInterface;
+            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mMeshPipeline));
 
-        GetDevice()->DestroyShaderModule(VS);
-        GetDevice()->DestroyShaderModule(PS);
+            GetDevice()->DestroyShaderModule(VS);
+            GetDevice()->DestroyShaderModule(PS);
+        }
+
+        {
+            grfx::ShaderModulePtr VS, PS;
+            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Background.vs", &VS));
+            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Background.ps", &PS));
+
+            grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+            piCreateInfo.setCount                          = 1;
+            piCreateInfo.sets[0].set                       = 0;
+            piCreateInfo.sets[0].pLayout                   = mDescriptorSetLayout;
+            PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mPipelineInterface));
+
+            grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+            gpCreateInfo.VS                                 = {VS, "vsmain"};
+            gpCreateInfo.PS                                 = {PS, "psmain"};
+            gpCreateInfo.vertexInputState.bindingCount      = 1;
+            gpCreateInfo.vertexInputState.bindings[0]       = mMonkeyMesh->GetDerivedVertexBindings()[0];
+            gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+            gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+            gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+            gpCreateInfo.depthReadEnable                    = true;
+            gpCreateInfo.depthWriteEnable                   = true;
+            gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+            gpCreateInfo.outputState.renderTargetCount      = 1;
+            gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+            gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+            gpCreateInfo.pPipelineInterface                 = mPipelineInterface;
+            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mBackgroundPipeline));
+
+            GetDevice()->DestroyShaderModule(VS);
+            GetDevice()->DestroyShaderModule(PS);
+        }
     }
 
     {
@@ -151,7 +190,7 @@ void OITDemoApp::Render()
 
         RenderParameters renderParameters = {};
         {
-            const float4x4 M = glm::scale(float3(5.0));
+            const float4x4 M = glm::scale(float3(1.0));
             renderParameters.backgroundMVP = VP * M;
         }
         {
@@ -184,13 +223,21 @@ void OITDemoApp::Render()
         {
             mCommandBuffer->SetScissors(GetScissor());
             mCommandBuffer->SetViewports(GetViewport());
-
-            mCommandBuffer->BindGraphicsPipeline(mPipeline);
             mCommandBuffer->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mDescriptorSet);
+        }
+        {
+            mCommandBuffer->BindGraphicsPipeline(mBackgroundPipeline);
+            mCommandBuffer->BindIndexBuffer(mBackgroundMesh);
+            mCommandBuffer->BindVertexBuffers(mBackgroundMesh);
+            mCommandBuffer->DrawIndexed(mBackgroundMesh->GetIndexCount());
+        }
+        {
+            mCommandBuffer->BindGraphicsPipeline(mMeshPipeline);
             mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
             mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
             mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
-
+        }
+        {
             // Draw ImGui
             DrawDebugInfo();
             DrawImGui(mCommandBuffer);

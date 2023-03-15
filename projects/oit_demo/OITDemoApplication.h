@@ -36,8 +36,10 @@ private:
     grfx::DescriptorSetLayoutPtr mDescriptorSetLayout;
 
     grfx::PipelineInterfacePtr   mPipelineInterface;
-    grfx::GraphicsPipelinePtr    mPipeline;
+    grfx::GraphicsPipelinePtr    mBackgroundPipeline;
+    grfx::GraphicsPipelinePtr    mMeshPipeline;
 
+    grfx::MeshPtr                mBackgroundMesh;
     grfx::MeshPtr                mMonkeyMesh;
 
     grfx::DescriptorSetPtr       mDescriptorSet;
