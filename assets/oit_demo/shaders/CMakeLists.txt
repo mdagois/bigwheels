@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,14 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+set(INCLUDE_FILES
+    "${PPX_DIR}/assets/oit_demo/shaders/Common.hlsli")
+
 generate_rules_for_shader(
-    "shader_vertex_auto_colors"
-    SOURCE "${PPX_DIR}/assets/oitdemo/shaders/VertexAutoColors.hlsl"
+    "alpha_blending"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/AlphaBlending.hlsl"
+    INCLUDES ${INCLUDE_FILES}
     STAGES "ps" "vs")
 
 generate_group_rule_for_shader(
-    "shader_oitdemo"
+    "shader_oit_demo"
     CHILDREN
-    "shader_vertex_auto_colors"
+    "alpha_blending"
 )
 

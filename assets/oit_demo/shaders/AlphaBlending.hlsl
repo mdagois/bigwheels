@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,24 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "Common.hlsli"
 
-struct TransformData
-{
-    float4x4 M;
-};
-
-// ConstantBuffer was addd in SM5.1 for D3D12
-//
+// ConstantBuffer was added in SM5.1 for D3D12
 #if defined(PPX_D3D11)
-cbuffer Transform : register(b0)
+cbuffer Parameters : register(b0)
 {
-    TransformData Transform;
+    RenderParameters Parameters;
 };
 #else
-ConstantBuffer<TransformData> Transform : register(b0);
-#endif // defined(PPX_D3D11)
+ConstantBuffer<RenderParameters> Parameters : register(b0);
+#endif
 
-struct VSOutput {
+struct VSOutput
+{
 	float4 Position : SV_POSITION;
 	float3 Color    : COLOR;
 };
@@ -37,12 +33,13 @@ struct VSOutput {
 VSOutput vsmain(float4 Position : POSITION)
 {
 	VSOutput result;
-	result.Position = mul(Transform.M, Position);
+	result.Position = mul(Parameters.meshMVP, Position);
 	result.Color = abs(Position.xyz);
 	return result;
 }
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-	return float4(input.Color, 1);
+	return float4(input.Color, Parameters.meshAlpha);
 }
+

@@ -14,6 +14,7 @@
 
 #include "OITDemoApplication.h"
 #include "ppx/graphics_util.h"
+#include "shaders/Common.hlsli"
 
 void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 {
@@ -82,8 +83,8 @@ void OITDemoApp::Setup()
     // Pipelines
     {
         grfx::ShaderModulePtr VS, PS;
-        PPX_CHECKED_CALL(CreateShader("oitdemo/shaders", "VertexAutoColors.vs", &VS));
-        PPX_CHECKED_CALL(CreateShader("oitdemo/shaders", "VertexAutoColors.ps", &PS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "AlphaBlending.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "AlphaBlending.ps", &PS));
 
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 1;
@@ -142,17 +143,26 @@ void OITDemoApp::Render()
     PPX_CHECKED_CALL(mImageAcquiredFence->WaitAndReset());
     PPX_CHECKED_CALL(mRenderCompleteFence->WaitAndReset());
 
-    // View/projection
-    const float4x4 PV =
-        glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f) *
-        glm::lookAt(float3(0, 0, 8), float3(0, 0, 0), float3(0, 1, 0));
-
-    // Update uniform buffer
+    // Uniform buffer update
     {
-        const float4x4 M = glm::rotate(time, float3(0, 0, 1)) * glm::rotate(2 * time, float3(0, 1, 0)) * glm::rotate(time, float3(1, 0, 0)) * glm::scale(float3(2));
+        const float4x4 VP =
+            glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f) *
+            glm::lookAt(float3(0, 0, 8), float3(0, 0, 0), float3(0, 1, 0));
+
         RenderParameters renderParameters = {};
-        renderParameters.PVM = PV * M;
-        renderParameters.alpha = 1.0f;
+        {
+            const float4x4 M = glm::scale(float3(5.0));
+            renderParameters.backgroundMVP = VP * M;
+        }
+        {
+            const float4x4 M =
+                glm::rotate(time, float3(0, 0, 1)) *
+                glm::rotate(2 * time, float3(0, 1, 0)) *
+                glm::rotate(time, float3(1, 0, 0)) *
+                glm::scale(float3(2));
+            renderParameters.meshMVP = VP * M;
+        }
+        renderParameters.meshAlpha = 1.0f;
         mUniformBuffer->CopyFromSource(sizeof(renderParameters), &renderParameters);
     }
 

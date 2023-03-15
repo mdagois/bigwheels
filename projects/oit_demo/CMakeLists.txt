@@ -23,6 +23,6 @@ add_samples_for_all_apis(
     "OITDemoApplication.cpp"
     "main.cpp"
     SHADER_DEPENDENCIES
-    "shader_vertex_auto_colors"
+    "alpha_blending"
 )
 

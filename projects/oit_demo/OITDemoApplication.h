@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ppx/ppx.h"
+
 using namespace ppx;
 
 class OITDemoApp
@@ -22,13 +23,6 @@ public:
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
     virtual void Render() override;
-
-private:
-    struct RenderParameters
-    {
-        float4x4 PVM;
-        float alpha;
-    };
 
 private:
     grfx::SemaphorePtr           mImageAcquiredSemaphore;
@@ -45,6 +39,7 @@ private:
     grfx::GraphicsPipelinePtr    mPipeline;
 
     grfx::MeshPtr                mMonkeyMesh;
+
     grfx::DescriptorSetPtr       mDescriptorSet;
     grfx::BufferPtr              mUniformBuffer;
 };
