@@ -16,7 +16,7 @@ struct RenderParameters
 {
     float4x4 backgroundMVP;
     float4x4 meshMVP;
-    float meshAlpha;
+    float meshOpacity;
 };
 
 #if defined(IS_SHADER)

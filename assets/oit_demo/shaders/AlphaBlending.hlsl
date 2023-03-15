@@ -31,6 +31,6 @@ VSOutput vsmain(float4 Position : POSITION)
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-	return float4(input.Color, Parameters.meshAlpha);
+	return float4(input.Color, Parameters.meshOpacity);
 }
 

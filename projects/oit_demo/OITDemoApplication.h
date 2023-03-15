@@ -25,6 +25,17 @@ public:
     virtual void Render() override;
 
 private:
+    struct GuiParameters
+    {
+        GuiParameters()
+        : meshOpacity(1.0f)
+        {
+        }
+
+        float meshOpacity;
+    };
+
+private:
     grfx::SemaphorePtr           mImageAcquiredSemaphore;
     grfx::FencePtr               mImageAcquiredFence;
     grfx::SemaphorePtr           mRenderCompleteSemaphore;
@@ -44,5 +55,7 @@ private:
 
     grfx::DescriptorSetPtr       mDescriptorSet;
     grfx::BufferPtr              mUniformBuffer;
+
+    GuiParameters                mGuiParameters;
 };
 
