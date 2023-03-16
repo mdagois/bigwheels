@@ -137,7 +137,6 @@ void OITDemoApp::Setup()
             gpCreateInfo.vertexInputState.bindings[0]       = mMonkeyMesh->GetDerivedVertexBindings()[0];
             gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
             gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-            gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
             gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
             gpCreateInfo.depthReadEnable                    = true;
             gpCreateInfo.depthWriteEnable                   = true;
@@ -146,7 +145,15 @@ void OITDemoApp::Setup()
             gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
             gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
             gpCreateInfo.pPipelineInterface                 = mPipelineInterface;
-            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mMeshPipeline));
+
+            gpCreateInfo.cullMode = grfx::CULL_MODE_NONE;
+            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mMeshAllFacesPipeline));
+
+            gpCreateInfo.cullMode = grfx::CULL_MODE_FRONT;
+            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mMeshBackFacesPipeline));
+
+            gpCreateInfo.cullMode = grfx::CULL_MODE_BACK;
+            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mMeshFrontFacesPipeline));
 
             GetDevice()->DestroyShaderModule(VS);
             GetDevice()->DestroyShaderModule(PS);
@@ -225,22 +232,65 @@ void OITDemoApp::Render()
             mCommandBuffer->SetViewports(GetViewport());
             mCommandBuffer->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mDescriptorSet);
         }
+
         {
             mCommandBuffer->BindGraphicsPipeline(mBackgroundPipeline);
             mCommandBuffer->BindIndexBuffer(mBackgroundMesh);
             mCommandBuffer->BindVertexBuffers(mBackgroundMesh);
             mCommandBuffer->DrawIndexed(mBackgroundMesh->GetIndexCount());
         }
+
+        mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
+        mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
+        switch(mGuiParameters.faceMode)
         {
-            mCommandBuffer->BindGraphicsPipeline(mMeshPipeline);
-            mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
-            mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
-            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+            case FACE_MODE_ALL:
+            {
+                mCommandBuffer->BindGraphicsPipeline(mMeshAllFacesPipeline);
+                mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+                break;
+            }
+            case FACE_MODE_ALL_BACK_THEN_FRONT:
+            {
+                mCommandBuffer->BindGraphicsPipeline(mMeshBackFacesPipeline);
+                mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+                mCommandBuffer->BindGraphicsPipeline(mMeshFrontFacesPipeline);
+                mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+                break;
+            }
+            case FACE_MODE_BACK_ONLY:
+            {
+                mCommandBuffer->BindGraphicsPipeline(mMeshBackFacesPipeline);
+                mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+                break;
+            }
+            case FACE_MODE_FRONT_ONLY:
+            {
+                mCommandBuffer->BindGraphicsPipeline(mMeshFrontFacesPipeline);
+                mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+                break;
+            }
+            default:
+            {
+                PPX_ASSERT_MSG(false, "unknown face mode");
+                break;
+            }
         }
+
         {
             if(ImGui::Begin("Parameters"))
             {
                 ImGui::SliderFloat("Opacity", &mGuiParameters.meshOpacity, 0.0f, 1.0f, "%.2f");
+
+                const char* faceModes[] =
+                {
+                    "All",
+                    "Back first, then front",
+                    "Back only",
+                    "Front only",
+                };
+                static_assert(IM_ARRAYSIZE(faceModes) == FACE_MODES_COUNT);
+                ImGui::Combo("Face draw mode", reinterpret_cast<int32_t*>(&mGuiParameters.faceMode), faceModes, IM_ARRAYSIZE(faceModes));
             }
             ImGui::End();
             DrawImGui(mCommandBuffer);

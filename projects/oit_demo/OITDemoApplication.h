@@ -25,14 +25,25 @@ public:
     virtual void Render() override;
 
 private:
+    enum FaceMode : int32_t
+    {
+        FACE_MODE_ALL,
+        FACE_MODE_ALL_BACK_THEN_FRONT,
+        FACE_MODE_BACK_ONLY,
+        FACE_MODE_FRONT_ONLY,
+        FACE_MODES_COUNT,
+    };
+
     struct GuiParameters
     {
         GuiParameters()
         : meshOpacity(1.0f)
+        , faceMode(FACE_MODE_ALL)
         {
         }
 
         float meshOpacity;
+        FaceMode faceMode;
     };
 
 private:
@@ -48,7 +59,9 @@ private:
 
     grfx::PipelineInterfacePtr   mPipelineInterface;
     grfx::GraphicsPipelinePtr    mBackgroundPipeline;
-    grfx::GraphicsPipelinePtr    mMeshPipeline;
+    grfx::GraphicsPipelinePtr    mMeshAllFacesPipeline;
+    grfx::GraphicsPipelinePtr    mMeshBackFacesPipeline;
+    grfx::GraphicsPipelinePtr    mMeshFrontFacesPipeline;
 
     grfx::MeshPtr                mBackgroundMesh;
     grfx::MeshPtr                mMonkeyMesh;
