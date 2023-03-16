@@ -25,6 +25,12 @@ public:
     virtual void Render() override;
 
 private:
+    enum Algorithm : int32_t
+    {
+        ALGORITHM_ALPHA_BLENDING,
+        ALGORITHMS_COUNT,
+    };
+
     enum FaceMode : int32_t
     {
         FACE_MODE_ALL,
@@ -38,13 +44,22 @@ private:
     {
         GuiParameters()
         : meshOpacity(1.0f)
+        , algorithm(ALGORITHM_ALPHA_BLENDING)
         , faceMode(FACE_MODE_ALL)
+        , displayBackground(true)
         {
         }
 
         float meshOpacity;
+        Algorithm algorithm;
         FaceMode faceMode;
+        bool displayBackground;
     };
+
+private:
+    void Draw3d();
+    void DrawAlphaBlending();
+    void DrawGui();
 
 private:
     grfx::SemaphorePtr           mImageAcquiredSemaphore;

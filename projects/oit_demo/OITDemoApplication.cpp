@@ -179,6 +179,113 @@ void OITDemoApp::Setup()
     }
 }
 
+void OITDemoApp::Draw3d()
+{
+    mCommandBuffer->SetScissors(GetScissor());
+    mCommandBuffer->SetViewports(GetViewport());
+    mCommandBuffer->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mDescriptorSet);
+
+    if(mGuiParameters.displayBackground)
+    {
+        mCommandBuffer->BindGraphicsPipeline(mBackgroundPipeline);
+        mCommandBuffer->BindIndexBuffer(mBackgroundMesh);
+        mCommandBuffer->BindVertexBuffers(mBackgroundMesh);
+        mCommandBuffer->DrawIndexed(mBackgroundMesh->GetIndexCount());
+    }
+
+    switch(mGuiParameters.algorithm)
+    {
+        case ALGORITHM_ALPHA_BLENDING:
+            DrawAlphaBlending();
+            break;
+        default:
+            PPX_ASSERT_MSG(false, "unknown algorithm (draw)");
+            break;
+    }
+}
+
+void OITDemoApp::DrawAlphaBlending()
+{
+    mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
+    mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
+    switch(mGuiParameters.faceMode)
+    {
+        case FACE_MODE_ALL:
+        {
+            mCommandBuffer->BindGraphicsPipeline(mMeshAllFacesPipeline);
+            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+            break;
+        }
+        case FACE_MODE_ALL_BACK_THEN_FRONT:
+        {
+            mCommandBuffer->BindGraphicsPipeline(mMeshBackFacesPipeline);
+            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+            mCommandBuffer->BindGraphicsPipeline(mMeshFrontFacesPipeline);
+            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+            break;
+        }
+        case FACE_MODE_BACK_ONLY:
+        {
+            mCommandBuffer->BindGraphicsPipeline(mMeshBackFacesPipeline);
+            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+            break;
+        }
+        case FACE_MODE_FRONT_ONLY:
+        {
+            mCommandBuffer->BindGraphicsPipeline(mMeshFrontFacesPipeline);
+            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+            break;
+        }
+        default:
+        {
+            PPX_ASSERT_MSG(false, "unknown face mode");
+            break;
+        }
+    }
+}
+
+void OITDemoApp::DrawGui()
+{
+    if(ImGui::Begin("Parameters"))
+    {
+        const char* algorithmChoices[] =
+        {
+            "Alpha blending",
+        };
+        static_assert(IM_ARRAYSIZE(algorithmChoices) == ALGORITHMS_COUNT, "Algorithm count mismatch");
+        ImGui::Combo("Algorithm", reinterpret_cast<int32_t*>(&mGuiParameters.algorithm), algorithmChoices, IM_ARRAYSIZE(algorithmChoices));
+
+        ImGui::SliderFloat("Opacity", &mGuiParameters.meshOpacity, 0.0f, 1.0f, "%.2f");
+        ImGui::Checkbox("Display background", &mGuiParameters.displayBackground);
+
+        ImGui::Separator();
+
+        switch(mGuiParameters.algorithm)
+        {
+            case ALGORITHM_ALPHA_BLENDING:
+                {
+                    const char* faceModeChoices[] =
+                    {
+                        "All",
+                        "Back first, then front",
+                        "Back only",
+                        "Front only",
+                    };
+                    static_assert(IM_ARRAYSIZE(faceModeChoices) == FACE_MODES_COUNT, "Face modes count mismatch");
+                    ImGui::Combo("Face draw mode", reinterpret_cast<int32_t*>(&mGuiParameters.faceMode), faceModeChoices, IM_ARRAYSIZE(faceModeChoices));
+                    break;
+                }
+            default:
+                {
+                    PPX_ASSERT_MSG(false, "unknown algorithm (option)");
+                    break;
+                }
+        }
+    }
+    ImGui::End();
+    DrawImGui(mCommandBuffer);
+}
+
 void OITDemoApp::Render()
 {
     const float time = GetElapsedSeconds();
@@ -227,74 +334,8 @@ void OITDemoApp::Render()
 
         mCommandBuffer->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
         mCommandBuffer->BeginRenderPass(&beginInfo);
-        {
-            mCommandBuffer->SetScissors(GetScissor());
-            mCommandBuffer->SetViewports(GetViewport());
-            mCommandBuffer->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mDescriptorSet);
-        }
-
-        {
-            mCommandBuffer->BindGraphicsPipeline(mBackgroundPipeline);
-            mCommandBuffer->BindIndexBuffer(mBackgroundMesh);
-            mCommandBuffer->BindVertexBuffers(mBackgroundMesh);
-            mCommandBuffer->DrawIndexed(mBackgroundMesh->GetIndexCount());
-        }
-
-        mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
-        mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
-        switch(mGuiParameters.faceMode)
-        {
-            case FACE_MODE_ALL:
-            {
-                mCommandBuffer->BindGraphicsPipeline(mMeshAllFacesPipeline);
-                mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
-                break;
-            }
-            case FACE_MODE_ALL_BACK_THEN_FRONT:
-            {
-                mCommandBuffer->BindGraphicsPipeline(mMeshBackFacesPipeline);
-                mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
-                mCommandBuffer->BindGraphicsPipeline(mMeshFrontFacesPipeline);
-                mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
-                break;
-            }
-            case FACE_MODE_BACK_ONLY:
-            {
-                mCommandBuffer->BindGraphicsPipeline(mMeshBackFacesPipeline);
-                mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
-                break;
-            }
-            case FACE_MODE_FRONT_ONLY:
-            {
-                mCommandBuffer->BindGraphicsPipeline(mMeshFrontFacesPipeline);
-                mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
-                break;
-            }
-            default:
-            {
-                PPX_ASSERT_MSG(false, "unknown face mode");
-                break;
-            }
-        }
-
-        {
-            if(ImGui::Begin("Parameters"))
-            {
-                ImGui::SliderFloat("Opacity", &mGuiParameters.meshOpacity, 0.0f, 1.0f, "%.2f");
-
-                const char* faceModes[] =
-                {
-                    "All",
-                    "Back first, then front",
-                    "Back only",
-                    "Front only",
-                };
-                static_assert(IM_ARRAYSIZE(faceModes) == FACE_MODES_COUNT);
-                ImGui::Combo("Face draw mode", reinterpret_cast<int32_t*>(&mGuiParameters.faceMode), faceModes, IM_ARRAYSIZE(faceModes));
-            }
-            ImGui::End();
-            DrawImGui(mCommandBuffer);
-        }
+        Draw3d();
+        DrawGui();
         mCommandBuffer->EndRenderPass();
         mCommandBuffer->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
     }
