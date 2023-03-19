@@ -23,23 +23,23 @@ public:
     virtual void Render() override;
 
 private:
-    struct PerFrame
-    {
-        ppx::grfx::CommandBufferPtr cmd;
-        ppx::grfx::SemaphorePtr     imageAcquiredSemaphore;
-        ppx::grfx::FencePtr         imageAcquiredFence;
-        ppx::grfx::SemaphorePtr     renderCompleteSemaphore;
-        ppx::grfx::FencePtr         renderCompleteFence;
-    };
+    void RecordCommandBuffer(uint32_t imageIndex);
 
-    std::vector<PerFrame>           mPerFrame;
+private:
+    ppx::grfx::SemaphorePtr         mImageAcquiredSemaphore;
+    ppx::grfx::FencePtr             mImageAcquiredFence;
+    ppx::grfx::SemaphorePtr         mRenderCompleteSemaphore;
+    ppx::grfx::FencePtr             mRenderCompleteFence;
+
+    ppx::grfx::CommandBufferPtr     mCommandBuffer;
+
+#if 0
     ppx::grfx::ShaderModulePtr      mVS;
     ppx::grfx::ShaderModulePtr      mPS;
     ppx::grfx::PipelineInterfacePtr mPipelineInterface;
     ppx::grfx::GraphicsPipelinePtr  mPipeline;
     ppx::grfx::BufferPtr            mVertexBuffer;
-	ppx::grfx::Viewport             mViewport;
-    ppx::grfx::Rect                 mScissorRect;
     ppx::grfx::VertexBinding        mVertexBinding;
+#endif
 };
 

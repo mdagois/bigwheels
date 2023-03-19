@@ -25,11 +25,11 @@ void XlsViewerApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.enableDebug = false;
 
 #if defined(USE_DX11)
-	settings.grfx.api         = grfx::API_DX_11_1;
+    settings.grfx.api         = grfx::API_DX_11_1;
 #elif defined(USE_DX12)
-	settings.grfx.api         = grfx::API_DX_12_0;
+    settings.grfx.api         = grfx::API_DX_12_0;
 #elif defined(USE_VK)
-	settings.grfx.api         = grfx::API_VK_1_1;
+    settings.grfx.api         = grfx::API_VK_1_1;
 #endif
 #if defined(USE_DXIL)
     settings.grfx.enableDXIL = true;
@@ -38,6 +38,19 @@ void XlsViewerApp::Config(ppx::ApplicationSettings& settings)
 
 void XlsViewerApp::Setup()
 {
+    // Synchronization objects
+    {
+        grfx::SemaphoreCreateInfo semaCreateInfo = {};
+        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mImageAcquiredSemaphore));
+        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mRenderCompleteSemaphore));
+
+        grfx::FenceCreateInfo fenceCreateInfo = {};
+        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mImageAcquiredFence));
+        fenceCreateInfo = {true}; // Create signaled
+        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mRenderCompleteFence));
+    }
+
+#if 0
     // Pipeline
     {
         std::vector<char> bytecode = LoadShader("basic/shaders", "StaticVertexColors.vs");
@@ -73,27 +86,9 @@ void XlsViewerApp::Setup()
         gpCreateInfo.pPipelineInterface                 = mPipelineInterface;
         PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipeline));
     }
+#endif
 
-    // Per frame data
-    {
-        PerFrame frame = {};
-
-        PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&frame.cmd));
-
-        grfx::SemaphoreCreateInfo semaCreateInfo = {};
-        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.imageAcquiredSemaphore));
-
-        grfx::FenceCreateInfo fenceCreateInfo = {};
-        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.imageAcquiredFence));
-
-        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.renderCompleteSemaphore));
-
-        fenceCreateInfo = {true}; // Create signaled
-        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.renderCompleteFence));
-
-        mPerFrame.push_back(frame);
-    }
-
+#if 0
     // Buffer and geometry data
     {
         // clang-format off
@@ -119,71 +114,69 @@ void XlsViewerApp::Setup()
         memcpy(pAddr, vertexData.data(), dataSize);
         mVertexBuffer->UnmapMemory();
     }
+#endif
 
-    mViewport    = {0, 0, float(GetWindowWidth()), float(GetWindowHeight()), 0, 1};
-    mScissorRect = {0, 0, GetWindowWidth(), GetWindowHeight()};
+    PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&mCommandBuffer));
+}
+
+void XlsViewerApp::RecordCommandBuffer(uint32_t imageIndex)
+{
+    grfx::RenderPassPtr renderPass = GetSwapchain()->GetRenderPass(imageIndex);
+    PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
+
+    PPX_CHECKED_CALL(mCommandBuffer->Begin());
+    mCommandBuffer->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
+
+    grfx::RenderPassBeginInfo beginInfo = {};
+    beginInfo.pRenderPass               = renderPass;
+    beginInfo.renderArea                = renderPass->GetRenderArea();
+    beginInfo.RTVClearCount             = 1;
+    beginInfo.RTVClearValues[0]         = {{0, 0, 0, 1}};
+    mCommandBuffer->BeginRenderPass(&beginInfo);
+
+    mCommandBuffer->SetScissors(renderPass->GetScissor());
+    mCommandBuffer->SetViewports(renderPass->GetViewport());
+
+    {
+        //TODO Map a constant buffer with width/height of render + resolution width/height
+        //TODO Update the content of the updated texture
+#if 0
+        mCommandBuffer->BindGraphicsDescriptorSets(mPipelineInterface, 0, nullptr);
+        mCommandBuffer->BindGraphicsPipeline(mPipeline);
+        mCommandBuffer->BindVertexBuffers(1, &mVertexBuffer, &mVertexBinding.GetStride());
+        mCommandBuffer->Draw(3, 1, 0, 0);
+#endif
+    }
+
+    DrawDebugInfo();
+    DrawImGui(mCommandBuffer);
+
+    mCommandBuffer->EndRenderPass();
+
+    mCommandBuffer->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
+    PPX_CHECKED_CALL(mCommandBuffer->End());
 }
 
 void XlsViewerApp::Render()
 {
-    PerFrame& frame = mPerFrame[0];
-
-    grfx::SwapchainPtr swapchain = GetSwapchain();
+    //TODO Call the texture update function as much as necessary
 
     uint32_t imageIndex = UINT32_MAX;
-    PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
+    PPX_CHECKED_CALL(GetSwapchain()->AcquireNextImage(UINT64_MAX, mImageAcquiredSemaphore, mImageAcquiredFence, &imageIndex));
+    PPX_CHECKED_CALL(mImageAcquiredFence->WaitAndReset());
+    PPX_CHECKED_CALL(mRenderCompleteFence->WaitAndReset());
 
-    // Wait for and reset image acquired fence
-    PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
-
-    // Wait for and reset render complete fence
-    PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
-
-    // Build command buffer
-    PPX_CHECKED_CALL(frame.cmd->Begin());
-    {
-        grfx::RenderPassPtr renderPass = swapchain->GetRenderPass(imageIndex);
-        PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
-
-        grfx::RenderPassBeginInfo beginInfo = {};
-        beginInfo.pRenderPass               = renderPass;
-        beginInfo.renderArea                = renderPass->GetRenderArea();
-        beginInfo.RTVClearCount             = 1;
-        beginInfo.RTVClearValues[0]         = {{1, 0, 0, 1}};
-
-        frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
-        frame.cmd->BeginRenderPass(&beginInfo);
-        {
-            frame.cmd->SetScissors(1, &mScissorRect);
-            frame.cmd->SetViewports(1, &mViewport);
-            frame.cmd->BindGraphicsDescriptorSets(mPipelineInterface, 0, nullptr);
-            frame.cmd->BindGraphicsPipeline(mPipeline);
-            frame.cmd->BindVertexBuffers(1, &mVertexBuffer, &mVertexBinding.GetStride());
-            frame.cmd->Draw(3, 1, 0, 0);
-
-            // Draw ImGui
-            DrawDebugInfo();
-#if defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
-            DrawProfilerGrfxApiFunctions();
-#endif // defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
-            DrawImGui(frame.cmd);
-        }
-        frame.cmd->EndRenderPass();
-        frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
-    }
-    PPX_CHECKED_CALL(frame.cmd->End());
+    RecordCommandBuffer(imageIndex);
 
     grfx::SubmitInfo submitInfo     = {};
     submitInfo.commandBufferCount   = 1;
-    submitInfo.ppCommandBuffers     = &frame.cmd;
+    submitInfo.ppCommandBuffers     = &mCommandBuffer;
     submitInfo.waitSemaphoreCount   = 1;
-    submitInfo.ppWaitSemaphores     = &frame.imageAcquiredSemaphore;
+    submitInfo.ppWaitSemaphores     = &mImageAcquiredSemaphore;
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.ppSignalSemaphores   = &frame.renderCompleteSemaphore;
-    submitInfo.pFence               = frame.renderCompleteFence;
-
+    submitInfo.ppSignalSemaphores   = &mRenderCompleteSemaphore;
+    submitInfo.pFence               = mRenderCompleteFence;
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
-
-    PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
+    PPX_CHECKED_CALL(GetSwapchain()->Present(imageIndex, 1, &mRenderCompleteSemaphore));
 }
 
