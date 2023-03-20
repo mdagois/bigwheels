@@ -14,6 +14,10 @@
 
 #include "ppx/ppx.h"
 
+using namespace ppx;
+
+#include "shaders/Common.hlsli"
+
 class XlsViewerApp
     : public ppx::Application
 {
@@ -21,6 +25,13 @@ public:
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
     virtual void Render() override;
+
+private:
+	enum
+	{
+		BYTES_PER_PIXEL = sizeof(Pixel),
+		GRAPHICS_BUFFER_SIZE = 4096 * 4096 * BYTES_PER_PIXEL,
+	};
 
 private:
     void RecordCommandBuffer(uint32_t imageIndex);
@@ -32,6 +43,8 @@ private:
     ppx::grfx::FencePtr             mRenderCompleteFence;
 
     ppx::grfx::CommandBufferPtr     mCommandBuffer;
+
+    ppx::grfx::BufferPtr            mGraphicsBuffer;
 
 #if 0
     ppx::grfx::ShaderModulePtr      mVS;

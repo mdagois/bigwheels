@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ppx/ppx.h"
 #include "XlsViewer.h"
 
 using namespace ppx;
@@ -117,6 +116,21 @@ void XlsViewerApp::Setup()
 #endif
 
     PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&mCommandBuffer));
+
+	{
+        grfx::BufferCreateInfo bufferCreateInfo           = {};
+        bufferCreateInfo.size                             = GRAPHICS_BUFFER_SIZE;
+        bufferCreateInfo.structuredElementStride          = BYTES_PER_PIXEL;
+        bufferCreateInfo.usageFlags.bits.structuredBuffer = true;
+        bufferCreateInfo.memoryUsage                      = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        bufferCreateInfo.initialState                     = grfx::RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mGraphicsBuffer));
+
+        void* pAddress = nullptr;
+        PPX_CHECKED_CALL(mGraphicsBuffer->MapMemory(0, &pAddress));
+        memset(pAddress, 0, GRAPHICS_BUFFER_SIZE);
+        mGraphicsBuffer->UnmapMemory();
+	}
 }
 
 void XlsViewerApp::RecordCommandBuffer(uint32_t imageIndex)

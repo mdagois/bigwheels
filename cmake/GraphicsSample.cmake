@@ -24,7 +24,7 @@ function(_add_sample_internal)
     add_executable("${TARGET_NAME}" ${ARG_SOURCES})
     set_target_properties("${TARGET_NAME}" PROPERTIES FOLDER "ppx/samples/${ARG_API_TAG}")
 
-    target_include_directories("${TARGET_NAME}" PUBLIC ${PPX_DIR}/include)
+    target_include_directories("${TARGET_NAME}" PUBLIC ${PPX_DIR}/include ${PPX_DIR}/assets/${ARG_NAME})
     target_compile_definitions("${TARGET_NAME}" PRIVATE ${ARG_API_DEFINES})
 
     target_link_libraries("${TARGET_NAME}" PUBLIC ppx glfw)
