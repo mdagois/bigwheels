@@ -45,14 +45,7 @@ private:
     ppx::grfx::CommandBufferPtr     mCommandBuffer;
 
     ppx::grfx::BufferPtr            mGraphicsBuffer;
-
-#if 0
-    ppx::grfx::ShaderModulePtr      mVS;
-    ppx::grfx::ShaderModulePtr      mPS;
-    ppx::grfx::PipelineInterfacePtr mPipelineInterface;
-    ppx::grfx::GraphicsPipelinePtr  mPipeline;
-    ppx::grfx::BufferPtr            mVertexBuffer;
-    ppx::grfx::VertexBinding        mVertexBinding;
-#endif
+    ppx::grfx::PipelineInterfacePtr mGraphicsPipelineInterface;
+    ppx::grfx::GraphicsPipelinePtr  mGraphicsPipeline;
 };
 

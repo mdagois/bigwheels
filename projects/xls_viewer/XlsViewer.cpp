@@ -14,8 +14,6 @@
 
 #include "XlsViewer.h"
 
-using namespace ppx;
-
 void XlsViewerApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName          = "xls_viewer";
@@ -37,7 +35,6 @@ void XlsViewerApp::Config(ppx::ApplicationSettings& settings)
 
 void XlsViewerApp::Setup()
 {
-    // Synchronization objects
     {
         grfx::SemaphoreCreateInfo semaCreateInfo = {};
         PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mImageAcquiredSemaphore));
@@ -45,75 +42,9 @@ void XlsViewerApp::Setup()
 
         grfx::FenceCreateInfo fenceCreateInfo = {};
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mImageAcquiredFence));
-        fenceCreateInfo = {true}; // Create signaled
+        fenceCreateInfo = {true};
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mRenderCompleteFence));
     }
-
-#if 0
-    // Pipeline
-    {
-        std::vector<char> bytecode = LoadShader("basic/shaders", "StaticVertexColors.vs");
-        PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
-        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVS));
-
-        bytecode = LoadShader("basic/shaders", "StaticVertexColors.ps");
-        PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
-        shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPS));
-
-        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mPipelineInterface));
-
-        mVertexBinding.AppendAttribute({"POSITION", 0, grfx::FORMAT_R32G32B32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, grfx::VERTEX_INPUT_RATE_VERTEX});
-        mVertexBinding.AppendAttribute({"COLOR", 1, grfx::FORMAT_R32G32B32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, grfx::VERTEX_INPUT_RATE_VERTEX});
-
-        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-        gpCreateInfo.VS                                 = {mVS.Get(), "vsmain"};
-        gpCreateInfo.PS                                 = {mPS.Get(), "psmain"};
-        gpCreateInfo.vertexInputState.bindingCount      = 1;
-        gpCreateInfo.vertexInputState.bindings[0]       = mVertexBinding;
-        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-        gpCreateInfo.cullMode                           = grfx::CULL_MODE_NONE;
-        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-        gpCreateInfo.depthReadEnable                    = false;
-        gpCreateInfo.depthWriteEnable                   = false;
-        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-        gpCreateInfo.outputState.renderTargetCount      = 1;
-        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-        gpCreateInfo.pPipelineInterface                 = mPipelineInterface;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipeline));
-    }
-#endif
-
-#if 0
-    // Buffer and geometry data
-    {
-        // clang-format off
-        std::vector<float> vertexData = {
-            // position           // vertex colors
-             0.0f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,
-            -0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,
-             0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,
-        };
-        // clang-format on
-        uint32_t dataSize = ppx::SizeInBytesU32(vertexData);
-
-        grfx::BufferCreateInfo bufferCreateInfo       = {};
-        bufferCreateInfo.size                         = dataSize;
-        bufferCreateInfo.usageFlags.bits.vertexBuffer = true;
-        bufferCreateInfo.memoryUsage                  = grfx::MEMORY_USAGE_CPU_TO_GPU;
-        bufferCreateInfo.initialState                 = grfx::RESOURCE_STATE_VERTEX_BUFFER;
-
-        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mVertexBuffer));
-
-        void* pAddr = nullptr;
-        PPX_CHECKED_CALL(mVertexBuffer->MapMemory(0, &pAddr));
-        memcpy(pAddr, vertexData.data(), dataSize);
-        mVertexBuffer->UnmapMemory();
-    }
-#endif
 
     PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&mCommandBuffer));
 
@@ -131,6 +62,34 @@ void XlsViewerApp::Setup()
         memset(pAddress, 0, GRAPHICS_BUFFER_SIZE);
         mGraphicsBuffer->UnmapMemory();
 	}
+
+    {
+		ppx::grfx::ShaderModulePtr VS, PS;
+		PPX_CHECKED_CALL(CreateShader("xls_viewer/shaders", "Screen.vs", &VS));
+		PPX_CHECKED_CALL(CreateShader("xls_viewer/shaders", "Screen.ps", &PS));
+
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mGraphicsPipelineInterface));
+
+        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+        gpCreateInfo.VS                                 = {VS.Get(), "vsmain"};
+        gpCreateInfo.PS                                 = {PS.Get(), "psmain"};
+        gpCreateInfo.vertexInputState.bindingCount      = 0;
+        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+        gpCreateInfo.depthReadEnable                    = false;
+        gpCreateInfo.depthWriteEnable                   = false;
+        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+        gpCreateInfo.outputState.renderTargetCount      = 1;
+        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+        gpCreateInfo.pPipelineInterface                 = mGraphicsPipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mGraphicsPipeline));
+
+		GetDevice()->DestroyShaderModule(VS);
+		GetDevice()->DestroyShaderModule(PS);
+    }
 }
 
 void XlsViewerApp::RecordCommandBuffer(uint32_t imageIndex)
@@ -154,12 +113,9 @@ void XlsViewerApp::RecordCommandBuffer(uint32_t imageIndex)
     {
         //TODO Map a constant buffer with width/height of render + resolution width/height
         //TODO Update the content of the updated texture
-#if 0
-        mCommandBuffer->BindGraphicsDescriptorSets(mPipelineInterface, 0, nullptr);
-        mCommandBuffer->BindGraphicsPipeline(mPipeline);
-        mCommandBuffer->BindVertexBuffers(1, &mVertexBuffer, &mVertexBinding.GetStride());
+        mCommandBuffer->BindGraphicsDescriptorSets(mGraphicsPipelineInterface, 0, nullptr);
+        mCommandBuffer->BindGraphicsPipeline(mGraphicsPipeline);
         mCommandBuffer->Draw(3, 1, 0, 0);
-#endif
     }
 
     DrawDebugInfo();
