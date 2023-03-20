@@ -19,10 +19,10 @@ using namespace ppx;
 #include "shaders/Common.hlsli"
 
 class XlsViewerApp
-    : public ppx::Application
+    : public Application
 {
 public:
-    virtual void Config(ppx::ApplicationSettings& settings) override;
+    virtual void Config(ApplicationSettings& settings) override;
     virtual void Setup() override;
     virtual void Render() override;
 
@@ -37,15 +37,19 @@ private:
     void RecordCommandBuffer(uint32_t imageIndex);
 
 private:
-    ppx::grfx::SemaphorePtr         mImageAcquiredSemaphore;
-    ppx::grfx::FencePtr             mImageAcquiredFence;
-    ppx::grfx::SemaphorePtr         mRenderCompleteSemaphore;
-    ppx::grfx::FencePtr             mRenderCompleteFence;
+    grfx::SemaphorePtr           mImageAcquiredSemaphore;
+    grfx::FencePtr               mImageAcquiredFence;
+    grfx::SemaphorePtr           mRenderCompleteSemaphore;
+    grfx::FencePtr               mRenderCompleteFence;
 
-    ppx::grfx::CommandBufferPtr     mCommandBuffer;
+    grfx::CommandBufferPtr       mCommandBuffer;
+    grfx::DescriptorPoolPtr      mDescriptorPool;
 
-    ppx::grfx::BufferPtr            mScreenBuffer;
-    ppx::grfx::PipelineInterfacePtr mScreenPipelineInterface;
-    ppx::grfx::GraphicsPipelinePtr  mScreenPipeline;
+    grfx::PipelineInterfacePtr   mScreenPipelineInterface;
+    grfx::GraphicsPipelinePtr    mScreenPipeline;
+    grfx::DescriptorSetLayoutPtr mScreenDescriptorSetLayout;
+    grfx::DescriptorSetPtr       mScreenDescriptorSet;
+    grfx::BufferPtr              mScreenUniformBuffer;
+    grfx::BufferPtr              mScreenPixelBuffer;
 };
 

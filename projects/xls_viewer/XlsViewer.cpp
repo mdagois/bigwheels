@@ -49,7 +49,41 @@ void XlsViewerApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mRenderCompleteFence));
     }
 
-    PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&mCommandBuffer));
+    {
+		PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&mCommandBuffer));
+
+        grfx::DescriptorPoolCreateInfo createInfo = {};
+        createInfo.sampler                        = 16;
+        createInfo.sampledImage                   = 16;
+        createInfo.uniformBuffer                  = 16;
+        createInfo.structuredBuffer               = 16;
+        createInfo.storageTexelBuffer             = 16;
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
+    }
+
+    {
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mScreenDescriptorSetLayout));
+    }
+
+    {
+        grfx::BufferCreateInfo bufferCreateInfo        = {};
+        bufferCreateInfo.size                          = std::max(sizeof(ShaderGlobals), static_cast<size_t>(PPX_MINIMUM_UNIFORM_BUFFER_SIZE));
+        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
+        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mScreenUniformBuffer));
+
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mScreenDescriptorSetLayout, &mScreenDescriptorSet));
+
+        grfx::WriteDescriptor write = {};
+        write.binding               = 0;
+        write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.bufferOffset          = 0;
+        write.bufferRange           = PPX_WHOLE_SIZE;
+        write.pBuffer               = mScreenUniformBuffer;
+        PPX_CHECKED_CALL(mScreenDescriptorSet->UpdateDescriptors(1, &write));
+    }
 
 	{
         grfx::BufferCreateInfo bufferCreateInfo           = {};
@@ -58,12 +92,12 @@ void XlsViewerApp::Setup()
         bufferCreateInfo.usageFlags.bits.structuredBuffer = true;
         bufferCreateInfo.memoryUsage                      = grfx::MEMORY_USAGE_CPU_TO_GPU;
         bufferCreateInfo.initialState                     = grfx::RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mScreenBuffer));
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mScreenPixelBuffer));
 
         void* pAddress = nullptr;
-        PPX_CHECKED_CALL(mScreenBuffer->MapMemory(0, &pAddress));
+        PPX_CHECKED_CALL(mScreenPixelBuffer->MapMemory(0, &pAddress));
         memset(pAddress, 0, GRAPHICS_BUFFER_SIZE);
-        mScreenBuffer->UnmapMemory();
+        mScreenPixelBuffer->UnmapMemory();
 	}
 
     {
@@ -72,6 +106,9 @@ void XlsViewerApp::Setup()
 		PPX_CHECKED_CALL(CreateShader("xls_viewer/shaders", "Screen.ps", &PS));
 
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+		piCreateInfo.setCount                          = 1;
+		piCreateInfo.sets[0].set                       = 0;
+		piCreateInfo.sets[0].pLayout                   = mScreenDescriptorSetLayout;
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mScreenPipelineInterface));
 
         grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
@@ -116,7 +153,7 @@ void XlsViewerApp::RecordCommandBuffer(uint32_t imageIndex)
     {
         //TODO Map a constant buffer with width/height of render + resolution width/height
         //TODO Update the content of the updated texture
-        mCommandBuffer->BindGraphicsDescriptorSets(mScreenPipelineInterface, 0, nullptr);
+        mCommandBuffer->BindGraphicsDescriptorSets(mScreenPipelineInterface, 1, &mScreenDescriptorSet);
         mCommandBuffer->BindGraphicsPipeline(mScreenPipeline);
         mCommandBuffer->Draw(6, 1, 0, 0);
     }
@@ -138,6 +175,14 @@ void XlsViewerApp::Render()
     PPX_CHECKED_CALL(GetSwapchain()->AcquireNextImage(UINT64_MAX, mImageAcquiredSemaphore, mImageAcquiredFence, &imageIndex));
     PPX_CHECKED_CALL(mImageAcquiredFence->WaitAndReset());
     PPX_CHECKED_CALL(mRenderCompleteFence->WaitAndReset());
+
+	ShaderGlobals shaderGlobals = {};
+	//TODO Properly set these
+	shaderGlobals.Resolution.x = 1280.0f;
+	shaderGlobals.Resolution.y = 720.0f;
+	shaderGlobals.Resolution.w = 600.0f;
+	shaderGlobals.Resolution.z = 600.0f;
+	mScreenUniformBuffer->CopyFromSource(sizeof(ShaderGlobals), &shaderGlobals);
 
     RecordCommandBuffer(imageIndex);
 

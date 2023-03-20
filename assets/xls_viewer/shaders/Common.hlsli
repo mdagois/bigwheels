@@ -17,11 +17,11 @@
 
 struct ShaderGlobals
 {
-	float4 resolution; // x = window width, y = window height, z = screen width, w = screen height
+	float4 Resolution; // x = window width, y = window height, z = screen width, w = screen height
 };
 
 struct Pixel
 {
-	float4 color;
+	float4 Color;
 };
 

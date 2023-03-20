@@ -44,8 +44,12 @@ VSOutput vsmain(uint VertexID : SV_VertexID)
 		float2(+1.0f, +1.0f),
 	};
 
+	const float2 scale = float2(
+		g_Globals.Resolution.z / g_Globals.Resolution.x,
+		g_Globals.Resolution.w / g_Globals.Resolution.y);
+
 	VSOutput result;
-	result.Position = float4(vertices[VertexID], 0.0f, 1.0f);
+	result.Position = float4(vertices[VertexID] * scale, 0.0f, 1.0f);
 	result.Color = float3(1.0f, 0.0f, 0.0f);
 	return result;
 }
