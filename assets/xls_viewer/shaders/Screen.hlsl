@@ -14,6 +14,17 @@
 
 #include "Common.hlsli"
 
+#if defined(PPX_D3D11)
+cbuffer Globals : register(SHADER_GLOBALS_REGISTER)
+{
+    ShaderGlobals g_Globals;
+};
+StructuredBuffer<Pixel> g_Pixels : register(GRAPHICS_BUFFER_REGISTER);
+#else
+ConstantBuffer<ShaderGlobals> g_Globals : register(SHADER_GLOBALS_REGISTER, space0);
+StructuredBuffer<Pixel> g_Pixels : register(GRAPHICS_BUFFER_REGISTER, space0);
+#endif
+
 struct VSOutput
 {
 	float4 Position : SV_POSITION;
@@ -25,8 +36,12 @@ VSOutput vsmain(uint VertexID : SV_VertexID)
 	const float2 vertices[] =
 	{
 		float2(-1.0f, -1.0f),
-		float2(+3.0f, -1.0f),
-		float2(-1.0f, +3.0f),
+		float2(+1.0f, -1.0f),
+		float2(-1.0f, +1.0f),
+
+		float2(-1.0f, +1.0f),
+		float2(+1.0f, -1.0f),
+		float2(+1.0f, +1.0f),
 	};
 
 	VSOutput result;

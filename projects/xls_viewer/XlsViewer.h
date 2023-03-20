@@ -44,8 +44,8 @@ private:
 
     ppx::grfx::CommandBufferPtr     mCommandBuffer;
 
-    ppx::grfx::BufferPtr            mGraphicsBuffer;
-    ppx::grfx::PipelineInterfacePtr mGraphicsPipelineInterface;
-    ppx::grfx::GraphicsPipelinePtr  mGraphicsPipeline;
+    ppx::grfx::BufferPtr            mScreenBuffer;
+    ppx::grfx::PipelineInterfacePtr mScreenPipelineInterface;
+    ppx::grfx::GraphicsPipelinePtr  mScreenPipeline;
 };
 

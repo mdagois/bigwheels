@@ -12,6 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#define SHADER_GLOBALS_REGISTER		b0
+#define GRAPHICS_BUFFER_REGISTER	t1
+
+struct ShaderGlobals
+{
+	float4 resolution; // x = window width, y = window height, z = screen width, w = screen height
+};
+
 struct Pixel
 {
 	float4 color;

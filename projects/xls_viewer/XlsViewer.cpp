@@ -14,6 +14,9 @@
 
 #include "XlsViewer.h"
 
+//TODO Control clear color
+//TODO Control real size/fit to screen/etc.
+
 void XlsViewerApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName          = "xls_viewer";
@@ -55,12 +58,12 @@ void XlsViewerApp::Setup()
         bufferCreateInfo.usageFlags.bits.structuredBuffer = true;
         bufferCreateInfo.memoryUsage                      = grfx::MEMORY_USAGE_CPU_TO_GPU;
         bufferCreateInfo.initialState                     = grfx::RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mGraphicsBuffer));
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mScreenBuffer));
 
         void* pAddress = nullptr;
-        PPX_CHECKED_CALL(mGraphicsBuffer->MapMemory(0, &pAddress));
+        PPX_CHECKED_CALL(mScreenBuffer->MapMemory(0, &pAddress));
         memset(pAddress, 0, GRAPHICS_BUFFER_SIZE);
-        mGraphicsBuffer->UnmapMemory();
+        mScreenBuffer->UnmapMemory();
 	}
 
     {
@@ -69,7 +72,7 @@ void XlsViewerApp::Setup()
 		PPX_CHECKED_CALL(CreateShader("xls_viewer/shaders", "Screen.ps", &PS));
 
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mGraphicsPipelineInterface));
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mScreenPipelineInterface));
 
         grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
         gpCreateInfo.VS                                 = {VS.Get(), "vsmain"};
@@ -84,8 +87,8 @@ void XlsViewerApp::Setup()
         gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
         gpCreateInfo.outputState.renderTargetCount      = 1;
         gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-        gpCreateInfo.pPipelineInterface                 = mGraphicsPipelineInterface;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mGraphicsPipeline));
+        gpCreateInfo.pPipelineInterface                 = mScreenPipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mScreenPipeline));
 
 		GetDevice()->DestroyShaderModule(VS);
 		GetDevice()->DestroyShaderModule(PS);
@@ -113,9 +116,9 @@ void XlsViewerApp::RecordCommandBuffer(uint32_t imageIndex)
     {
         //TODO Map a constant buffer with width/height of render + resolution width/height
         //TODO Update the content of the updated texture
-        mCommandBuffer->BindGraphicsDescriptorSets(mGraphicsPipelineInterface, 0, nullptr);
-        mCommandBuffer->BindGraphicsPipeline(mGraphicsPipeline);
-        mCommandBuffer->Draw(3, 1, 0, 0);
+        mCommandBuffer->BindGraphicsDescriptorSets(mScreenPipelineInterface, 0, nullptr);
+        mCommandBuffer->BindGraphicsPipeline(mScreenPipeline);
+        mCommandBuffer->Draw(6, 1, 0, 0);
     }
 
     DrawDebugInfo();
