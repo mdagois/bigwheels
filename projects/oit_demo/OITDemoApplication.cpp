@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//TODO Control clear color from ImGui
+//TODO Choice of cubemaps as background
+
 #include "OITDemoApplication.h"
 #include "ppx/graphics_util.h"
 #include "shaders/Common.hlsli"
@@ -179,33 +182,79 @@ void OITDemoApp::Setup()
     }
 }
 
-void OITDemoApp::Draw3d()
+void OITDemoApp::DrawBackground()
 {
+    if(!mGuiParameters.displayBackground)
+    {
+        return;
+    }
+    mCommandBuffer->BindGraphicsPipeline(mBackgroundPipeline);
+    mCommandBuffer->BindIndexBuffer(mBackgroundMesh);
+    mCommandBuffer->BindVertexBuffers(mBackgroundMesh);
+    mCommandBuffer->DrawIndexed(mBackgroundMesh->GetIndexCount());
+}
+
+void OITDemoApp::DrawGui()
+{
+    if(ImGui::Begin("Parameters"))
+    {
+        const char* algorithmChoices[] =
+        {
+            "Alpha blending",
+            "Meshkin",
+        };
+        static_assert(IM_ARRAYSIZE(algorithmChoices) == ALGORITHMS_COUNT, "Algorithm count mismatch");
+        ImGui::Combo("Algorithm", reinterpret_cast<int32_t*>(&mGuiParameters.algorithm), algorithmChoices, IM_ARRAYSIZE(algorithmChoices));
+
+        ImGui::SliderFloat("Opacity", &mGuiParameters.meshOpacity, 0.0f, 1.0f, "%.2f");
+        ImGui::Checkbox("Display background", &mGuiParameters.displayBackground);
+
+        ImGui::Separator();
+
+        switch(mGuiParameters.algorithm)
+        {
+            case ALGORITHM_ALPHA_BLENDING:
+            {
+                const char* faceModeChoices[] =
+                {
+                    "All",
+                    "Back first, then front",
+                    "Back only",
+                    "Front only",
+                };
+                static_assert(IM_ARRAYSIZE(faceModeChoices) == FACE_MODES_COUNT, "Face modes count mismatch");
+                ImGui::Combo("Face draw mode", reinterpret_cast<int32_t*>(&mGuiParameters.faceMode), faceModeChoices, IM_ARRAYSIZE(faceModeChoices));
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
+    }
+    ImGui::End();
+    DrawImGui(mCommandBuffer);
+}
+
+void OITDemoApp::RecordAlphaBlending(grfx::RenderPassPtr finalRenderPass)
+{
+    PPX_CHECKED_CALL(mCommandBuffer->Begin());
+    mCommandBuffer->TransitionImageLayout(finalRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
+
+    grfx::RenderPassBeginInfo beginInfo = {};
+    beginInfo.pRenderPass               = finalRenderPass;
+    beginInfo.renderArea                = finalRenderPass->GetRenderArea();
+    beginInfo.RTVClearCount             = 1;
+    beginInfo.RTVClearValues[0]         = {{0, 0, 0, 0}};
+    beginInfo.DSVClearValue             = {1.0f, 0xFF};
+    mCommandBuffer->BeginRenderPass(&beginInfo);
+
     mCommandBuffer->SetScissors(GetScissor());
     mCommandBuffer->SetViewports(GetViewport());
     mCommandBuffer->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mDescriptorSet);
 
-    if(mGuiParameters.displayBackground)
-    {
-        mCommandBuffer->BindGraphicsPipeline(mBackgroundPipeline);
-        mCommandBuffer->BindIndexBuffer(mBackgroundMesh);
-        mCommandBuffer->BindVertexBuffers(mBackgroundMesh);
-        mCommandBuffer->DrawIndexed(mBackgroundMesh->GetIndexCount());
-    }
+    DrawBackground();
 
-    switch(mGuiParameters.algorithm)
-    {
-        case ALGORITHM_ALPHA_BLENDING:
-            DrawAlphaBlending();
-            break;
-        default:
-            PPX_ASSERT_MSG(false, "unknown algorithm (draw)");
-            break;
-    }
-}
-
-void OITDemoApp::DrawAlphaBlending()
-{
     mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
     mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
     switch(mGuiParameters.faceMode)
@@ -242,62 +291,51 @@ void OITDemoApp::DrawAlphaBlending()
             break;
         }
     }
+
+    DrawGui();
+
+    mCommandBuffer->EndRenderPass();
+    mCommandBuffer->TransitionImageLayout(finalRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
+    PPX_CHECKED_CALL(mCommandBuffer->End());
 }
 
-void OITDemoApp::DrawGui()
+void OITDemoApp::RecordMeshkin(grfx::RenderPassPtr finalRenderPass)
 {
-    if(ImGui::Begin("Parameters"))
-    {
-        const char* algorithmChoices[] =
-        {
-            "Alpha blending",
-        };
-        static_assert(IM_ARRAYSIZE(algorithmChoices) == ALGORITHMS_COUNT, "Algorithm count mismatch");
-        ImGui::Combo("Algorithm", reinterpret_cast<int32_t*>(&mGuiParameters.algorithm), algorithmChoices, IM_ARRAYSIZE(algorithmChoices));
+    PPX_CHECKED_CALL(mCommandBuffer->Begin());
+    mCommandBuffer->TransitionImageLayout(finalRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
 
-        ImGui::SliderFloat("Opacity", &mGuiParameters.meshOpacity, 0.0f, 1.0f, "%.2f");
-        ImGui::Checkbox("Display background", &mGuiParameters.displayBackground);
+    grfx::RenderPassBeginInfo beginInfo = {};
+    beginInfo.pRenderPass               = finalRenderPass;
+    beginInfo.renderArea                = finalRenderPass->GetRenderArea();
+    beginInfo.RTVClearCount             = 1;
+    beginInfo.RTVClearValues[0]         = {{0, 0, 0, 0}};
+    beginInfo.DSVClearValue             = {1.0f, 0xFF};
+    mCommandBuffer->BeginRenderPass(&beginInfo);
 
-        ImGui::Separator();
+    mCommandBuffer->SetScissors(GetScissor());
+    mCommandBuffer->SetViewports(GetViewport());
+    mCommandBuffer->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mDescriptorSet);
 
-        switch(mGuiParameters.algorithm)
-        {
-            case ALGORITHM_ALPHA_BLENDING:
-                {
-                    const char* faceModeChoices[] =
-                    {
-                        "All",
-                        "Back first, then front",
-                        "Back only",
-                        "Front only",
-                    };
-                    static_assert(IM_ARRAYSIZE(faceModeChoices) == FACE_MODES_COUNT, "Face modes count mismatch");
-                    ImGui::Combo("Face draw mode", reinterpret_cast<int32_t*>(&mGuiParameters.faceMode), faceModeChoices, IM_ARRAYSIZE(faceModeChoices));
-                    break;
-                }
-            default:
-                {
-                    PPX_ASSERT_MSG(false, "unknown algorithm (option)");
-                    break;
-                }
-        }
-    }
-    ImGui::End();
-    DrawImGui(mCommandBuffer);
+    DrawBackground();
+    //TODO Draw meshkin
+    DrawGui();
+
+    mCommandBuffer->EndRenderPass();
+    mCommandBuffer->TransitionImageLayout(finalRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
+    PPX_CHECKED_CALL(mCommandBuffer->End());
 }
 
 void OITDemoApp::Render()
 {
-    const float time = GetElapsedSeconds();
-    grfx::SwapchainPtr swapchain = GetSwapchain();
-
     uint32_t imageIndex = UINT32_MAX;
-    PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, mImageAcquiredSemaphore, mImageAcquiredFence, &imageIndex));
+    PPX_CHECKED_CALL(GetSwapchain()->AcquireNextImage(UINT64_MAX, mImageAcquiredSemaphore, mImageAcquiredFence, &imageIndex));
     PPX_CHECKED_CALL(mImageAcquiredFence->WaitAndReset());
     PPX_CHECKED_CALL(mRenderCompleteFence->WaitAndReset());
 
     // Uniform buffer update
     {
+        const float time = GetElapsedSeconds();
+
         const float4x4 VP =
             glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f) *
             glm::lookAt(float3(0, 0, 8), float3(0, 0, 0), float3(0, 1, 0));
@@ -319,27 +357,21 @@ void OITDemoApp::Render()
         mUniformBuffer->CopyFromSource(sizeof(renderParameters), &renderParameters);
     }
 
-    // Build command buffer
-    PPX_CHECKED_CALL(mCommandBuffer->Begin());
+    // Record command buffer
+    grfx::RenderPassPtr finalRenderPass = GetSwapchain()->GetRenderPass(imageIndex);
+    PPX_ASSERT_MSG(!finalRenderPass.IsNull(), "render pass object is null");
+    switch(mGuiParameters.algorithm)
     {
-        grfx::RenderPassPtr renderPass = swapchain->GetRenderPass(imageIndex);
-        PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
-
-        grfx::RenderPassBeginInfo beginInfo = {};
-        beginInfo.pRenderPass               = renderPass;
-        beginInfo.renderArea                = renderPass->GetRenderArea();
-        beginInfo.RTVClearCount             = 1;
-        beginInfo.RTVClearValues[0]         = {{0, 0, 0, 0}};
-        beginInfo.DSVClearValue             = {1.0f, 0xFF};
-
-        mCommandBuffer->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
-        mCommandBuffer->BeginRenderPass(&beginInfo);
-        Draw3d();
-        DrawGui();
-        mCommandBuffer->EndRenderPass();
-        mCommandBuffer->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
+        case ALGORITHM_ALPHA_BLENDING:
+            RecordAlphaBlending(finalRenderPass);
+            break;
+        case ALGORITHM_MESHKIN:
+            RecordMeshkin(finalRenderPass);
+            break;
+        default:
+            PPX_ASSERT_MSG(false, "unknown algorithm");
+            break;
     }
-    PPX_CHECKED_CALL(mCommandBuffer->End());
 
     // Submit and present
     grfx::SubmitInfo submitInfo     = {};
@@ -351,6 +383,6 @@ void OITDemoApp::Render()
     submitInfo.ppSignalSemaphores   = &mRenderCompleteSemaphore;
     submitInfo.pFence               = mRenderCompleteFence;
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
-    PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &mRenderCompleteSemaphore));
+    PPX_CHECKED_CALL(GetSwapchain()->Present(imageIndex, 1, &mRenderCompleteSemaphore));
 }
 

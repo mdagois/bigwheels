@@ -28,6 +28,7 @@ private:
     enum Algorithm : int32_t
     {
         ALGORITHM_ALPHA_BLENDING,
+        ALGORITHM_MESHKIN,
         ALGORITHMS_COUNT,
     };
 
@@ -57,9 +58,11 @@ private:
     };
 
 private:
-    void Draw3d();
-    void DrawAlphaBlending();
+    void DrawBackground();
     void DrawGui();
+
+    void RecordAlphaBlending(grfx::RenderPassPtr finalRenderPass);
+    void RecordMeshkin(grfx::RenderPassPtr finalRenderPass);
 
 private:
     grfx::SemaphorePtr           mImageAcquiredSemaphore;
