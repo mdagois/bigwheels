@@ -60,6 +60,7 @@ private:
 private:
     void SetupBackground();
     void SetupAlphaBlending();
+    void SetupMeshkin();
 
     void DrawBackground();
     void DrawGui();

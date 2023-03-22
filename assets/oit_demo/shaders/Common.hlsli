@@ -12,6 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if defined(IS_SHADER)
+# define SHADER_REGISTER(type, num) type##num
+#else
+# define SHADER_REGISTER(type, num) num
+#endif
+
+#define SHADER_GLOBALS_REGISTER         SHADER_REGISTER(b, 0)
+#define TRANSPARENCY_TEXTURE_REGISTER   SHADER_REGISTER(t, 1)
+#define TRANSPARENCY_SAMPLER_REGISTER   SHADER_REGISTER(s, 2)
+
 struct ShaderGlobals
 {
     float4x4 backgroundMVP;
@@ -21,14 +31,18 @@ struct ShaderGlobals
 
 #if defined(IS_SHADER)
 
-#if defined(PPX_D3D11)
-cbuffer ShaderGlobals : register(b0)
-{
-    ShaderGlobals g_Globals;
-};
-#else
-ConstantBuffer<ShaderGlobals> g_Globals : register(b0);
-#endif
+# if defined(PPX_D3D11)
+#  define DECLARE_CONSTANT_BUFFER(type, name, reg) \
+    cbuffer type : register(reg)\
+    {\
+        type name;\
+    };
+# else
+#  define DECLARE_CONSTANT_BUFFER(type, name, reg) \
+    ConstantBuffer<type> name : register(reg);
+# endif
+
+DECLARE_CONSTANT_BUFFER(ShaderGlobals, g_Globals, SHADER_GLOBALS_REGISTER);
 
 #endif
 

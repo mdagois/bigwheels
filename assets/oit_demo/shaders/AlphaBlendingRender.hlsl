@@ -14,21 +14,10 @@
 
 #define IS_SHADER
 #include "Common.hlsli"
-
-struct VSOutput
-{
-    float4 Position : SV_POSITION;
-};
-
-VSOutput vsmain(float4 Position : POSITION)
-{
-    VSOutput result;
-    result.Position = mul(g_Globals.backgroundMVP, Position);
-    return result;
-}
+#include "RenderVS.hlsli"
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-    return (float4)1.0f;
+    return float4(input.Color, g_Globals.meshOpacity);
 }
 

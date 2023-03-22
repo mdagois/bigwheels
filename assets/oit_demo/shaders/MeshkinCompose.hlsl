@@ -14,21 +14,13 @@
 
 #define IS_SHADER
 #include "Common.hlsli"
+#include "ComposeVS.hlsli"
 
-struct VSOutput
-{
-    float4 Position : SV_POSITION;
-};
-
-VSOutput vsmain(float4 Position : POSITION)
-{
-    VSOutput result;
-    result.Position = mul(g_Globals.backgroundMVP, Position);
-    return result;
-}
+Texture2D    TransparencyTexture : register(TRANSPARENCY_TEXTURE_REGISTER);
+SamplerState TransparencySampler : register(TRANSPARENCY_SAMPLER_REGISTER);
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-    return (float4)1.0f;
+    return TransparencyTexture.Sample(TransparencySampler, input.TexCoord);
 }
 

@@ -12,25 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define IS_SHADER
-#include "Common.hlsli"
-
 struct VSOutput
 {
-	float4 Position : SV_POSITION;
-	float3 Color    : COLOR;
+    float4 Position : SV_POSITION;
+    float3 Color    : COLOR;
 };
 
 VSOutput vsmain(float4 Position : POSITION)
 {
-	VSOutput result;
-	result.Position = mul(g_Globals.meshMVP, Position);
-	result.Color = abs(Position.xyz);
-	return result;
-}
-
-float4 psmain(VSOutput input) : SV_TARGET
-{
-	return float4(input.Color, g_Globals.meshOpacity);
+    VSOutput result;
+    result.Position = mul(g_Globals.meshMVP, Position);
+    result.Color = abs(Position.xyz);
+    return result;
 }
 

@@ -44,16 +44,16 @@ void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 
 void OITDemoApp::SetupBackground()
 {
-    // Set layout
+    // Descriptor
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mBackground.descriptorSetLayout));
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mBackground.descriptorSetLayout, &mBackground.descriptorSet));
 
         grfx::WriteDescriptor write = {};
-        write.binding = 0;
+        write.binding = SHADER_GLOBALS_REGISTER;
         write.type = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         write.bufferOffset = 0;
         write.bufferRange = PPX_WHOLE_SIZE;
@@ -98,11 +98,14 @@ void OITDemoApp::SetupBackground()
 
 void OITDemoApp::SetupAlphaBlending()
 {
-    mAlphaBlending.descriptorSetLayout = mBackground.descriptorSetLayout;
-    mAlphaBlending.descriptorSet = mBackground.descriptorSet;
-    mAlphaBlending.pipelineInterface = mBackground.pipelineInterface;
+    // Descriptor
+    {
+        mAlphaBlending.descriptorSetLayout = mBackground.descriptorSetLayout;
+        mAlphaBlending.descriptorSet = mBackground.descriptorSet;
+        mAlphaBlending.pipelineInterface = mBackground.pipelineInterface;
+    }
 
-    // Pipelines
+    // Pipeline
     {
         grfx::ShaderModulePtr VS, PS;
         PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "AlphaBlending.vs", &VS));
@@ -142,6 +145,10 @@ void OITDemoApp::SetupAlphaBlending()
         GetDevice()->DestroyShaderModule(VS);
         GetDevice()->DestroyShaderModule(PS);
     }
+}
+
+void OITDemoApp::SetupMeshkin()
+{
 }
 
 void OITDemoApp::Setup()
@@ -195,6 +202,7 @@ void OITDemoApp::Setup()
 
     SetupBackground();
     SetupAlphaBlending();
+    SetupMeshkin();
 }
 
 void OITDemoApp::DrawBackground()

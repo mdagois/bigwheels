@@ -12,23 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define IS_SHADER
-#include "Common.hlsli"
-
 struct VSOutput
 {
     float4 Position : SV_POSITION;
+    float2 TexCoord : TEXCOORD;
 };
 
-VSOutput vsmain(float4 Position : POSITION)
+VSOutput vsmain(uint VertexID : SV_VertexID)
 {
-    VSOutput result;
-    result.Position = mul(g_Globals.backgroundMVP, Position);
-    return result;
-}
+    const float4 vertices[] =
+    {
+        float4(-1.0f, -1.0f, +0.0f, +1.0f),
+        float4(+3.0f, -1.0f, +2.0f, +1.0f),
+        float4(-1.0f, +3.0f, +0.0f, -1.0f),
+    };
 
-float4 psmain(VSOutput input) : SV_TARGET
-{
-    return (float4)1.0f;
+    VSOutput result;
+    result.Position = float4(vertices[VertexID].xy, 0.0f, 1.0f);
+    result.TexCoord = float2(vertices[VertexID].zw);
+    return result;
 }
 
