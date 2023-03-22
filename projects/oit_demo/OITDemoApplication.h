@@ -58,6 +58,9 @@ private:
     };
 
 private:
+    void SetupBackground();
+    void SetupAlphaBlending();
+
     void DrawBackground();
     void DrawGui();
 
@@ -65,6 +68,8 @@ private:
     void RecordMeshkin(grfx::RenderPassPtr finalRenderPass);
 
 private:
+    GuiParameters                mGuiParameters;
+
     grfx::SemaphorePtr           mImageAcquiredSemaphore;
     grfx::FencePtr               mImageAcquiredFence;
     grfx::SemaphorePtr           mRenderCompleteSemaphore;
@@ -76,15 +81,22 @@ private:
     grfx::MeshPtr                mMonkeyMesh;
     grfx::BufferPtr              mShaderGlobalsBuffer;
 
-    grfx::DescriptorSetLayoutPtr mDescriptorSetLayout;
-    grfx::DescriptorSetPtr       mDescriptorSet;
+    struct
+    {
+        grfx::DescriptorSetLayoutPtr descriptorSetLayout;
+        grfx::DescriptorSetPtr       descriptorSet;
+        grfx::PipelineInterfacePtr   pipelineInterface;
+        grfx::GraphicsPipelinePtr    pipeline;
+    } mBackground;
 
-    grfx::PipelineInterfacePtr   mPipelineInterface;
-    grfx::GraphicsPipelinePtr    mBackgroundPipeline;
-    grfx::GraphicsPipelinePtr    mMeshAllFacesPipeline;
-    grfx::GraphicsPipelinePtr    mMeshBackFacesPipeline;
-    grfx::GraphicsPipelinePtr    mMeshFrontFacesPipeline;
-
-    GuiParameters                mGuiParameters;
+    struct
+    {
+        grfx::DescriptorSetLayoutPtr descriptorSetLayout;
+        grfx::DescriptorSetPtr       descriptorSet;
+        grfx::PipelineInterfacePtr   pipelineInterface;
+        grfx::GraphicsPipelinePtr    meshAllFacesPipeline;
+        grfx::GraphicsPipelinePtr    meshBackFacesPipeline;
+        grfx::GraphicsPipelinePtr    meshFrontFacesPipeline;
+    } mAlphaBlending;
 };
 

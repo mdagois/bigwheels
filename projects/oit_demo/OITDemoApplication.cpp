@@ -41,9 +41,112 @@ void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 #endif
 }
 
+
+void OITDemoApp::SetupBackground()
+{
+    // Set layout
+    {
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mBackground.descriptorSetLayout));
+
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mBackground.descriptorSetLayout, &mBackground.descriptorSet));
+
+        grfx::WriteDescriptor write = {};
+        write.binding = 0;
+        write.type = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.bufferOffset = 0;
+        write.bufferRange = PPX_WHOLE_SIZE;
+        write.pBuffer = mShaderGlobalsBuffer;
+        PPX_CHECKED_CALL(mBackground.descriptorSet->UpdateDescriptors(1, &write));
+    }
+
+    // Pipeline
+    {
+        grfx::ShaderModulePtr VS, PS;
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Background.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Background.ps", &PS));
+
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 1;
+        piCreateInfo.sets[0].set                       = 0;
+        piCreateInfo.sets[0].pLayout                   = mBackground.descriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mBackground.pipelineInterface));
+
+        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+        gpCreateInfo.VS                                 = {VS, "vsmain"};
+        gpCreateInfo.PS                                 = {PS, "psmain"};
+        gpCreateInfo.vertexInputState.bindingCount      = 1;
+        gpCreateInfo.vertexInputState.bindings[0]       = mMonkeyMesh->GetDerivedVertexBindings()[0];
+        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.cullMode                           = grfx::CULL_MODE_FRONT;
+        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+        gpCreateInfo.depthReadEnable                    = true;
+        gpCreateInfo.depthWriteEnable                   = true;
+        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+        gpCreateInfo.outputState.renderTargetCount      = 1;
+        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+        gpCreateInfo.pPipelineInterface                 = mBackground.pipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mBackground.pipeline));
+
+        GetDevice()->DestroyShaderModule(VS);
+        GetDevice()->DestroyShaderModule(PS);
+    }
+}
+
+void OITDemoApp::SetupAlphaBlending()
+{
+    mAlphaBlending.descriptorSetLayout = mBackground.descriptorSetLayout;
+    mAlphaBlending.descriptorSet = mBackground.descriptorSet;
+    mAlphaBlending.pipelineInterface = mBackground.pipelineInterface;
+
+    // Pipelines
+    {
+        grfx::ShaderModulePtr VS, PS;
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "AlphaBlending.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "AlphaBlending.ps", &PS));
+
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 1;
+        piCreateInfo.sets[0].set                       = 0;
+        piCreateInfo.sets[0].pLayout                   = mBackground.descriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mAlphaBlending.pipelineInterface));
+
+        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+        gpCreateInfo.VS                                 = {VS, "vsmain"};
+        gpCreateInfo.PS                                 = {PS, "psmain"};
+        gpCreateInfo.vertexInputState.bindingCount      = 1;
+        gpCreateInfo.vertexInputState.bindings[0]       = mMonkeyMesh->GetDerivedVertexBindings()[0];
+        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+        gpCreateInfo.depthReadEnable                    = true;
+        gpCreateInfo.depthWriteEnable                   = true;
+        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_ALPHA;
+        gpCreateInfo.outputState.renderTargetCount      = 1;
+        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+        gpCreateInfo.pPipelineInterface                 = mAlphaBlending.pipelineInterface;
+
+        gpCreateInfo.cullMode = grfx::CULL_MODE_NONE;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mAlphaBlending.meshAllFacesPipeline));
+
+        gpCreateInfo.cullMode = grfx::CULL_MODE_FRONT;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mAlphaBlending.meshBackFacesPipeline));
+
+        gpCreateInfo.cullMode = grfx::CULL_MODE_BACK;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mAlphaBlending.meshFrontFacesPipeline));
+
+        GetDevice()->DestroyShaderModule(VS);
+        GetDevice()->DestroyShaderModule(PS);
+    }
+}
+
 void OITDemoApp::Setup()
 {
-    // Synchronization
+    // Synchronization objects
     {
         grfx::SemaphoreCreateInfo semaCreateInfo = {};
         PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mImageAcquiredSemaphore));
@@ -90,98 +193,8 @@ void OITDemoApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mShaderGlobalsBuffer));
     }
 
-    // Set layout
-    {
-        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mDescriptorSetLayout));
-
-        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mDescriptorSetLayout, &mDescriptorSet));
-
-        grfx::WriteDescriptor write = {};
-        write.binding = 0;
-        write.type = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.bufferOffset = 0;
-        write.bufferRange = PPX_WHOLE_SIZE;
-        write.pBuffer = mShaderGlobalsBuffer;
-        PPX_CHECKED_CALL(mDescriptorSet->UpdateDescriptors(1, &write));
-    }
-
-    // Pipelines
-    {
-        {
-            grfx::ShaderModulePtr VS, PS;
-            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Background.vs", &VS));
-            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Background.ps", &PS));
-
-            grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-            piCreateInfo.setCount                          = 1;
-            piCreateInfo.sets[0].set                       = 0;
-            piCreateInfo.sets[0].pLayout                   = mDescriptorSetLayout;
-            PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mPipelineInterface));
-
-            grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-            gpCreateInfo.VS                                 = {VS, "vsmain"};
-            gpCreateInfo.PS                                 = {PS, "psmain"};
-            gpCreateInfo.vertexInputState.bindingCount      = 1;
-            gpCreateInfo.vertexInputState.bindings[0]       = mMonkeyMesh->GetDerivedVertexBindings()[0];
-            gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-            gpCreateInfo.cullMode                           = grfx::CULL_MODE_FRONT;
-            gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-            gpCreateInfo.depthReadEnable                    = true;
-            gpCreateInfo.depthWriteEnable                   = true;
-            gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-            gpCreateInfo.outputState.renderTargetCount      = 1;
-            gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-            gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-            gpCreateInfo.pPipelineInterface                 = mPipelineInterface;
-            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mBackgroundPipeline));
-
-            GetDevice()->DestroyShaderModule(VS);
-            GetDevice()->DestroyShaderModule(PS);
-        }
-
-        {
-            grfx::ShaderModulePtr VS, PS;
-            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "AlphaBlending.vs", &VS));
-            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "AlphaBlending.ps", &PS));
-
-            grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-            piCreateInfo.setCount                          = 1;
-            piCreateInfo.sets[0].set                       = 0;
-            piCreateInfo.sets[0].pLayout                   = mDescriptorSetLayout;
-            PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mPipelineInterface));
-
-            grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-            gpCreateInfo.VS                                 = {VS, "vsmain"};
-            gpCreateInfo.PS                                 = {PS, "psmain"};
-            gpCreateInfo.vertexInputState.bindingCount      = 1;
-            gpCreateInfo.vertexInputState.bindings[0]       = mMonkeyMesh->GetDerivedVertexBindings()[0];
-            gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-            gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-            gpCreateInfo.depthReadEnable                    = true;
-            gpCreateInfo.depthWriteEnable                   = true;
-            gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_ALPHA;
-            gpCreateInfo.outputState.renderTargetCount      = 1;
-            gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-            gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-            gpCreateInfo.pPipelineInterface                 = mPipelineInterface;
-
-            gpCreateInfo.cullMode = grfx::CULL_MODE_NONE;
-            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mMeshAllFacesPipeline));
-
-            gpCreateInfo.cullMode = grfx::CULL_MODE_FRONT;
-            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mMeshBackFacesPipeline));
-
-            gpCreateInfo.cullMode = grfx::CULL_MODE_BACK;
-            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mMeshFrontFacesPipeline));
-
-            GetDevice()->DestroyShaderModule(VS);
-            GetDevice()->DestroyShaderModule(PS);
-        }
-    }
+    SetupBackground();
+    SetupAlphaBlending();
 }
 
 void OITDemoApp::DrawBackground()
@@ -190,7 +203,8 @@ void OITDemoApp::DrawBackground()
     {
         return;
     }
-    mCommandBuffer->BindGraphicsPipeline(mBackgroundPipeline);
+    mCommandBuffer->BindGraphicsDescriptorSets(mBackground.pipelineInterface, 1, &mBackground.descriptorSet);
+    mCommandBuffer->BindGraphicsPipeline(mBackground.pipeline);
     mCommandBuffer->BindIndexBuffer(mBackgroundMesh);
     mCommandBuffer->BindVertexBuffers(mBackgroundMesh);
     mCommandBuffer->DrawIndexed(mBackgroundMesh->GetIndexCount());
@@ -253,37 +267,37 @@ void OITDemoApp::RecordAlphaBlending(grfx::RenderPassPtr finalRenderPass)
 
     mCommandBuffer->SetScissors(GetScissor());
     mCommandBuffer->SetViewports(GetViewport());
-    mCommandBuffer->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mDescriptorSet);
 
     DrawBackground();
 
+    mCommandBuffer->BindGraphicsDescriptorSets(mAlphaBlending.pipelineInterface, 1, &mAlphaBlending.descriptorSet);
     mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
     mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
     switch(mGuiParameters.faceMode)
     {
         case FACE_MODE_ALL:
         {
-            mCommandBuffer->BindGraphicsPipeline(mMeshAllFacesPipeline);
+            mCommandBuffer->BindGraphicsPipeline(mAlphaBlending.meshAllFacesPipeline);
             mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
             break;
         }
         case FACE_MODE_ALL_BACK_THEN_FRONT:
         {
-            mCommandBuffer->BindGraphicsPipeline(mMeshBackFacesPipeline);
+            mCommandBuffer->BindGraphicsPipeline(mAlphaBlending.meshBackFacesPipeline);
             mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
-            mCommandBuffer->BindGraphicsPipeline(mMeshFrontFacesPipeline);
+            mCommandBuffer->BindGraphicsPipeline(mAlphaBlending.meshFrontFacesPipeline);
             mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
             break;
         }
         case FACE_MODE_BACK_ONLY:
         {
-            mCommandBuffer->BindGraphicsPipeline(mMeshBackFacesPipeline);
+            mCommandBuffer->BindGraphicsPipeline(mAlphaBlending.meshBackFacesPipeline);
             mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
             break;
         }
         case FACE_MODE_FRONT_ONLY:
         {
-            mCommandBuffer->BindGraphicsPipeline(mMeshFrontFacesPipeline);
+            mCommandBuffer->BindGraphicsPipeline(mAlphaBlending.meshFrontFacesPipeline);
             mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
             break;
         }
@@ -316,7 +330,6 @@ void OITDemoApp::RecordMeshkin(grfx::RenderPassPtr finalRenderPass)
 
     mCommandBuffer->SetScissors(GetScissor());
     mCommandBuffer->SetViewports(GetViewport());
-    mCommandBuffer->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mDescriptorSet);
 
     DrawBackground();
     DrawGui();
