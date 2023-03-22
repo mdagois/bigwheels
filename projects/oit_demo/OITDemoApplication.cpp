@@ -41,6 +41,63 @@ void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 #endif
 }
 
+void OITDemoApp::SetupCommon()
+{
+    // Synchronization objects
+    {
+        grfx::SemaphoreCreateInfo semaCreateInfo = {};
+        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mImageAcquiredSemaphore));
+
+        grfx::FenceCreateInfo fenceCreateInfo = {};
+        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mImageAcquiredFence));
+
+        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mRenderCompleteSemaphore));
+
+        fenceCreateInfo.signaled = true;
+        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mRenderCompleteFence));
+    }
+
+    // Command buffer
+    {
+        PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&mCommandBuffer));
+    }
+
+    // Descriptor pool
+    {
+        grfx::DescriptorPoolCreateInfo createInfo = {};
+        createInfo.sampler                        = 16;
+        createInfo.sampledImage                   = 16;
+        createInfo.uniformBuffer                  = 16;
+        createInfo.structuredBuffer               = 16;
+        createInfo.storageTexelBuffer             = 16;
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
+    }
+
+    // Meshes
+    {
+        grfx::QueuePtr queue = this->GetGraphicsQueue();
+        TriMeshOptions options = TriMeshOptions().Indices();
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/cube.obj"), &mBackgroundMesh, options));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/monkey.obj"), &mMonkeyMesh, options));
+    }
+
+    // Shader globals
+    {
+        grfx::BufferCreateInfo bufferCreateInfo        = {};
+        bufferCreateInfo.size                          = std::max(sizeof(ShaderGlobals), static_cast<size_t>(PPX_MINIMUM_UNIFORM_BUFFER_SIZE));
+        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
+        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mShaderGlobalsBuffer));
+    }
+
+    // Samplers
+    {
+        grfx::SamplerCreateInfo createInfo = {};
+        createInfo.magFilter               = grfx::FILTER_NEAREST;
+        createInfo.minFilter               = grfx::FILTER_NEAREST;
+        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&createInfo, &mComposeSampler));
+    }
+}
 
 void OITDemoApp::SetupBackground()
 {
@@ -126,7 +183,7 @@ void OITDemoApp::SetupAlphaBlending()
         gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
         gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
         gpCreateInfo.depthReadEnable                    = true;
-        gpCreateInfo.depthWriteEnable                   = true;
+        gpCreateInfo.depthWriteEnable                   = false;
         gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_ALPHA;
         gpCreateInfo.outputState.renderTargetCount      = 1;
         gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
@@ -149,57 +206,45 @@ void OITDemoApp::SetupAlphaBlending()
 
 void OITDemoApp::SetupMeshkin()
 {
+    // Render pass
+    {
+        grfx::DrawPassCreateInfo createInfo     = {};
+        createInfo.width                        = GetWindowWidth();
+        createInfo.height                       = GetWindowHeight();
+        createInfo.renderTargetCount            = 1;
+        createInfo.renderTargetFormats[0]       = grfx::FORMAT_B8G8R8A8_UNORM;
+        createInfo.depthStencilFormat           = grfx::FORMAT_D32_FLOAT;
+        createInfo.renderTargetUsageFlags[0]    = grfx::IMAGE_USAGE_SAMPLED;
+        createInfo.renderTargetInitialStates[0] = grfx::RESOURCE_STATE_RENDER_TARGET;
+        createInfo.depthStencilInitialState     = grfx::RESOURCE_STATE_DEPTH_STENCIL_READ;
+        createInfo.renderTargetClearValues[0]   = {0, 0, 0, 0};
+        PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mMeshkin.transparencyPass));
+    }
+
+    {
+        grfx::TextureCreateInfo createInfo         = {};
+        createInfo.imageType                       = grfx::IMAGE_TYPE_2D;
+        createInfo.width                           = GetWindowWidth();
+        createInfo.height                          = GetWindowHeight();
+        createInfo.depth                           = 1;
+        createInfo.imageFormat                     = grfx::FORMAT_R8G8B8A8_UNORM;
+        createInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
+        createInfo.mipLevelCount                   = 1;
+        createInfo.arrayLayerCount                 = 1;
+        createInfo.usageFlags.bits.colorAttachment = true;
+        createInfo.usageFlags.bits.sampled         = true;
+        createInfo.memoryUsage                     = grfx::MEMORY_USAGE_GPU_ONLY;
+        createInfo.initialState                    = grfx::RESOURCE_STATE_RENDER_TARGET;
+        createInfo.RTVClearValue                   = {0, 0, 0, 0};
+        createInfo.DSVClearValue                   = {1.0f, 0xFF};
+
+        PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mMeshkin.transparencyTexture));
+    }
 }
 
 void OITDemoApp::Setup()
 {
-    // Synchronization objects
-    {
-        grfx::SemaphoreCreateInfo semaCreateInfo = {};
-        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mImageAcquiredSemaphore));
-
-        grfx::FenceCreateInfo fenceCreateInfo = {};
-        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mImageAcquiredFence));
-
-        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mRenderCompleteSemaphore));
-
-        fenceCreateInfo.signaled = true;
-        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mRenderCompleteFence));
-    }
-
-    // Command buffer
-    {
-        PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&mCommandBuffer));
-    }
-
-    // Descriptor pool
-    {
-        grfx::DescriptorPoolCreateInfo createInfo = {};
-        createInfo.sampler                        = 16;
-        createInfo.sampledImage                   = 16;
-        createInfo.uniformBuffer                  = 16;
-        createInfo.structuredBuffer               = 16;
-        createInfo.storageTexelBuffer             = 16;
-        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
-    }
-
-    // Meshes
-    {
-        grfx::QueuePtr queue = this->GetGraphicsQueue();
-        TriMeshOptions options = TriMeshOptions().Indices();
-        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/cube.obj"), &mBackgroundMesh, options));
-        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/monkey.obj"), &mMonkeyMesh, options));
-    }
-
-    // Shader globals
-    {
-        grfx::BufferCreateInfo bufferCreateInfo        = {};
-        bufferCreateInfo.size                          = std::max(sizeof(ShaderGlobals), static_cast<size_t>(PPX_MINIMUM_UNIFORM_BUFFER_SIZE));
-        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
-        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
-        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mShaderGlobalsBuffer));
-    }
-
+    SetupCommon();
     SetupBackground();
     SetupAlphaBlending();
     SetupMeshkin();

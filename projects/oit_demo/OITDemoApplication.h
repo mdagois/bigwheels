@@ -58,6 +58,7 @@ private:
     };
 
 private:
+    void SetupCommon();
     void SetupBackground();
     void SetupAlphaBlending();
     void SetupMeshkin();
@@ -81,6 +82,7 @@ private:
     grfx::MeshPtr                mBackgroundMesh;
     grfx::MeshPtr                mMonkeyMesh;
     grfx::BufferPtr              mShaderGlobalsBuffer;
+    grfx::SamplerPtr             mComposeSampler;
 
     struct
     {
@@ -99,5 +101,19 @@ private:
         grfx::GraphicsPipelinePtr    meshBackFacesPipeline;
         grfx::GraphicsPipelinePtr    meshFrontFacesPipeline;
     } mAlphaBlending;
+
+    struct
+    {
+        grfx::DrawPassPtr            transparencyPass;
+        grfx::TexturePtr             transparencyTexture;
+
+        grfx::DescriptorSetLayoutPtr renderDescriptorSetLayout;
+        grfx::DescriptorSetPtr       renderDescriptorSet;
+        grfx::GraphicsPipelinePtr    renderPipeline;
+
+        grfx::DescriptorSetLayoutPtr composeDescriptorSetLayout;
+        grfx::DescriptorSetPtr       composeDescriptorSet;
+        grfx::GraphicsPipelinePtr    composePipeline;
+    } mMeshkin;
 };
 
