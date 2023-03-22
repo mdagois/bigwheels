@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-struct RenderParameters
+struct ShaderGlobals
 {
     float4x4 backgroundMVP;
     float4x4 meshMVP;
@@ -21,14 +21,13 @@ struct RenderParameters
 
 #if defined(IS_SHADER)
 
-// ConstantBuffer was added in SM5.1 for D3D12
 #if defined(PPX_D3D11)
-cbuffer Parameters : register(b0)
+cbuffer ShaderGlobals : register(b0)
 {
-    RenderParameters Parameters;
+    ShaderGlobals g_Globals;
 };
 #else
-ConstantBuffer<RenderParameters> Parameters : register(b0);
+ConstantBuffer<ShaderGlobals> g_Globals : register(b0);
 #endif
 
 #endif

@@ -24,13 +24,13 @@ struct VSOutput
 VSOutput vsmain(float4 Position : POSITION)
 {
 	VSOutput result;
-	result.Position = mul(Parameters.meshMVP, Position);
+	result.Position = mul(g_Globals.meshMVP, Position);
 	result.Color = abs(Position.xyz);
 	return result;
 }
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-	return float4(input.Color, Parameters.meshOpacity);
+	return float4(input.Color, g_Globals.meshOpacity);
 }
 

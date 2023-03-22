@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//TODO Draw meshkin
 //TODO Control clear color from ImGui
 //TODO Choice of cubemaps as background
 
@@ -42,6 +43,25 @@ void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 
 void OITDemoApp::Setup()
 {
+    // Synchronization
+    {
+        grfx::SemaphoreCreateInfo semaCreateInfo = {};
+        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mImageAcquiredSemaphore));
+
+        grfx::FenceCreateInfo fenceCreateInfo = {};
+        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mImageAcquiredFence));
+
+        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mRenderCompleteSemaphore));
+
+        fenceCreateInfo.signaled = true;
+        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mRenderCompleteFence));
+    }
+
+    // Command buffer
+    {
+        PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&mCommandBuffer));
+    }
+
     // Descriptor pool
     {
         grfx::DescriptorPoolCreateInfo createInfo = {};
@@ -53,14 +73,7 @@ void OITDemoApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
     }
 
-    // Set layout
-    {
-        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mDescriptorSetLayout));
-    }
-
-    // Models
+    // Meshes
     {
         grfx::QueuePtr queue = this->GetGraphicsQueue();
         TriMeshOptions options = TriMeshOptions().Indices();
@@ -68,22 +81,29 @@ void OITDemoApp::Setup()
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/monkey.obj"), &mMonkeyMesh, options));
     }
 
-    // Uniform buffer
+    // Shader globals
     {
         grfx::BufferCreateInfo bufferCreateInfo        = {};
-        bufferCreateInfo.size                          = std::max(sizeof(RenderParameters), static_cast<size_t>(PPX_MINIMUM_UNIFORM_BUFFER_SIZE));
+        bufferCreateInfo.size                          = std::max(sizeof(ShaderGlobals), static_cast<size_t>(PPX_MINIMUM_UNIFORM_BUFFER_SIZE));
         bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
         bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
-        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mUniformBuffer));
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mShaderGlobalsBuffer));
+    }
+
+    // Set layout
+    {
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mDescriptorSetLayout));
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mDescriptorSetLayout, &mDescriptorSet));
 
         grfx::WriteDescriptor write = {};
-        write.binding               = 0;
-        write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.bufferOffset          = 0;
-        write.bufferRange           = PPX_WHOLE_SIZE;
-        write.pBuffer               = mUniformBuffer;
+        write.binding = 0;
+        write.type = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.bufferOffset = 0;
+        write.bufferRange = PPX_WHOLE_SIZE;
+        write.pBuffer = mShaderGlobalsBuffer;
         PPX_CHECKED_CALL(mDescriptorSet->UpdateDescriptors(1, &write));
     }
 
@@ -161,24 +181,6 @@ void OITDemoApp::Setup()
             GetDevice()->DestroyShaderModule(VS);
             GetDevice()->DestroyShaderModule(PS);
         }
-    }
-
-    {
-        PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&mCommandBuffer));
-    }
-
-    // Synchronization
-    {
-        grfx::SemaphoreCreateInfo semaCreateInfo = {};
-        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mImageAcquiredSemaphore));
-
-        grfx::FenceCreateInfo fenceCreateInfo = {};
-        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mImageAcquiredFence));
-
-        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mRenderCompleteSemaphore));
-
-        fenceCreateInfo.signaled = true;
-        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mRenderCompleteFence));
     }
 }
 
@@ -317,7 +319,6 @@ void OITDemoApp::RecordMeshkin(grfx::RenderPassPtr finalRenderPass)
     mCommandBuffer->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mDescriptorSet);
 
     DrawBackground();
-    //TODO Draw meshkin
     DrawGui();
 
     mCommandBuffer->EndRenderPass();
@@ -340,10 +341,10 @@ void OITDemoApp::Render()
             glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f) *
             glm::lookAt(float3(0, 0, 8), float3(0, 0, 0), float3(0, 1, 0));
 
-        RenderParameters renderParameters = {};
+        ShaderGlobals shaderGlobals = {};
         {
             const float4x4 M = glm::scale(float3(3.0));
-            renderParameters.backgroundMVP = VP * M;
+            shaderGlobals.backgroundMVP = VP * M;
         }
         {
             const float4x4 M =
@@ -351,10 +352,10 @@ void OITDemoApp::Render()
                 glm::rotate(2 * time, float3(0, 1, 0)) *
                 glm::rotate(time, float3(1, 0, 0)) *
                 glm::scale(float3(2));
-            renderParameters.meshMVP = VP * M;
+            shaderGlobals.meshMVP = VP * M;
         }
-        renderParameters.meshOpacity = mGuiParameters.meshOpacity;
-        mUniformBuffer->CopyFromSource(sizeof(renderParameters), &renderParameters);
+        shaderGlobals.meshOpacity = mGuiParameters.meshOpacity;
+        mShaderGlobalsBuffer->CopyFromSource(sizeof(shaderGlobals), &shaderGlobals);
     }
 
     // Record command buffer

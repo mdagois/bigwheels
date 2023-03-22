@@ -23,7 +23,7 @@ struct VSOutput
 VSOutput vsmain(float4 Position : POSITION)
 {
 	VSOutput result;
-	result.Position = mul(Parameters.backgroundMVP, Position);
+	result.Position = mul(g_Globals.backgroundMVP, Position);
 	return result;
 }
 

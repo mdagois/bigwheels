@@ -71,21 +71,19 @@ private:
     grfx::FencePtr               mRenderCompleteFence;
 
     grfx::CommandBufferPtr       mCommandBuffer;
-
     grfx::DescriptorPoolPtr      mDescriptorPool;
+    grfx::MeshPtr                mBackgroundMesh;
+    grfx::MeshPtr                mMonkeyMesh;
+    grfx::BufferPtr              mShaderGlobalsBuffer;
+
     grfx::DescriptorSetLayoutPtr mDescriptorSetLayout;
+    grfx::DescriptorSetPtr       mDescriptorSet;
 
     grfx::PipelineInterfacePtr   mPipelineInterface;
     grfx::GraphicsPipelinePtr    mBackgroundPipeline;
     grfx::GraphicsPipelinePtr    mMeshAllFacesPipeline;
     grfx::GraphicsPipelinePtr    mMeshBackFacesPipeline;
     grfx::GraphicsPipelinePtr    mMeshFrontFacesPipeline;
-
-    grfx::MeshPtr                mBackgroundMesh;
-    grfx::MeshPtr                mMonkeyMesh;
-
-    grfx::DescriptorSetPtr       mDescriptorSet;
-    grfx::BufferPtr              mUniformBuffer;
 
     GuiParameters                mGuiParameters;
 };
