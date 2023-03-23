@@ -105,14 +105,15 @@ private:
     struct
     {
         grfx::DrawPassPtr            transparencyPass;
-        grfx::TexturePtr             transparencyTexture;
 
         grfx::DescriptorSetLayoutPtr renderDescriptorSetLayout;
         grfx::DescriptorSetPtr       renderDescriptorSet;
+        grfx::PipelineInterfacePtr   renderPipelineInterface;
         grfx::GraphicsPipelinePtr    renderPipeline;
 
         grfx::DescriptorSetLayoutPtr composeDescriptorSetLayout;
         grfx::DescriptorSetPtr       composeDescriptorSet;
+        grfx::PipelineInterfacePtr   composePipelineInterface;
         grfx::GraphicsPipelinePtr    composePipeline;
     } mMeshkin;
 };
