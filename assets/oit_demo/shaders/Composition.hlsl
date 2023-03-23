@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#define IS_SHADER
+#include "Common.hlsli"
+
+////////////////////////////////////////////////////////////////////////////////
+
 struct VSOutput
 {
     float4 Position : SV_POSITION;
@@ -31,5 +36,23 @@ VSOutput vsmain(uint VertexID : SV_VertexID)
     result.Position = float4(vertices[VertexID].xy, 0.0f, 1.0f);
     result.TexCoord = float2(vertices[VertexID].zw);
     return result;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+SamplerState CompositionSampler  : register(COMPOSITION_SAMPLER_REGISTER);
+Texture2D    OpaqueTexture       : register(OPAQUE_TEXTURE_REGISTER);
+Texture2D    TransparencyTexture : register(TRANSPARENCY_TEXTURE_REGISTER);
+
+float4 psmain(VSOutput input) : SV_TARGET
+{
+	const float3 opaqueColor = OpaqueTexture.Sample(CompositionSampler, input.TexCoord).rgb;
+
+	const float4 transparencySample = TransparencyTexture.Sample(CompositionSampler, input.TexCoord);
+	const float3 transparencyColor = transparencySample.rgb;
+	const float coverage = transparencySample.a;
+
+	const float3 finalColor = transparencyColor + ((1.0f - coverage) * opaqueColor);
+	return float4(finalColor, 1.0f);
 }
 

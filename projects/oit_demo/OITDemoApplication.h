@@ -63,6 +63,8 @@ private:
     void SetupAlphaBlending();
     void SetupMeshkin();
 
+    void Update();
+
     void DrawBackground();
     void DrawGui();
 
@@ -79,23 +81,31 @@ private:
 
     grfx::CommandBufferPtr       mCommandBuffer;
     grfx::DescriptorPoolPtr      mDescriptorPool;
+
     grfx::MeshPtr                mBackgroundMesh;
     grfx::MeshPtr                mMonkeyMesh;
+
     grfx::BufferPtr              mShaderGlobalsBuffer;
-    grfx::SamplerPtr             mComposeSampler;
+
+    grfx::DrawPassPtr            mOpaquePass;
+    grfx::DescriptorSetLayoutPtr mOpaqueDescriptorSetLayout;
+    grfx::DescriptorSetPtr       mOpaqueDescriptorSet;
+    grfx::PipelineInterfacePtr   mOpaquePipelineInterface;
+    grfx::GraphicsPipelinePtr    mOpaquePipeline;
+
+    grfx::TexturePtr             mTransparencyTexture;
+
+    grfx::SamplerPtr             mCompositionSampler;
+    grfx::DescriptorSetLayoutPtr mCompositionDescriptorSetLayout;
+    grfx::DescriptorSetPtr       mCompositionDescriptorSet;
+    grfx::PipelineInterfacePtr   mCompositionPipelineInterface;
+    grfx::GraphicsPipelinePtr    mCompositionPipeline;
 
     struct
     {
         grfx::DescriptorSetLayoutPtr descriptorSetLayout;
         grfx::DescriptorSetPtr       descriptorSet;
-        grfx::PipelineInterfacePtr   pipelineInterface;
-        grfx::GraphicsPipelinePtr    pipeline;
-    } mBackground;
 
-    struct
-    {
-        grfx::DescriptorSetLayoutPtr descriptorSetLayout;
-        grfx::DescriptorSetPtr       descriptorSet;
         grfx::PipelineInterfacePtr   pipelineInterface;
         grfx::GraphicsPipelinePtr    meshAllFacesPipeline;
         grfx::GraphicsPipelinePtr    meshBackFacesPipeline;
@@ -104,17 +114,11 @@ private:
 
     struct
     {
-        grfx::DrawPassPtr            transparencyPass;
+        grfx::DescriptorSetLayoutPtr descriptorSetLayout;
+        grfx::DescriptorSetPtr       descriptorSet;
 
-        grfx::DescriptorSetLayoutPtr renderDescriptorSetLayout;
-        grfx::DescriptorSetPtr       renderDescriptorSet;
-        grfx::PipelineInterfacePtr   renderPipelineInterface;
-        grfx::GraphicsPipelinePtr    renderPipeline;
-
-        grfx::DescriptorSetLayoutPtr composeDescriptorSetLayout;
-        grfx::DescriptorSetPtr       composeDescriptorSet;
-        grfx::PipelineInterfacePtr   composePipelineInterface;
-        grfx::GraphicsPipelinePtr    composePipeline;
+        grfx::PipelineInterfacePtr   pipelineInterface;
+        grfx::GraphicsPipelinePtr    pipeline;
     } mMeshkin;
 };
 

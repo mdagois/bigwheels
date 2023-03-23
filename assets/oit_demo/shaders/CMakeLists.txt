@@ -16,35 +16,35 @@ set(INCLUDE_FILES
     "${PPX_DIR}/assets/oit_demo/shaders/Common.hlsli")
 
 generate_rules_for_shader(
-    "background"
-    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/Background.hlsl"
+    "opaque"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/Opaque.hlsl"
     INCLUDES ${INCLUDE_FILES}
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
-    "alpha_blending_render"
-    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/AlphaBlendingRender.hlsl"
+    "alpha_blending"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/AlphaBlending.hlsl"
     INCLUDES ${INCLUDE_FILES}
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
-    "meshkin_render"
-    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/MeshkinRender.hlsl"
+    "meshkin"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/Meshkin.hlsl"
     INCLUDES ${INCLUDE_FILES}
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
-    "meshkin_compose"
-    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/MeshkinCompose.hlsl"
+    "composition"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/Composition.hlsl"
     INCLUDES ${INCLUDE_FILES}
     STAGES "ps" "vs")
 
 generate_group_rule_for_shader(
     "shader_oit_demo"
     CHILDREN
-    "alpha_blending_render"
-    "background"
-    "meshkin_render"
-    "meshkin_compose"
+    "opaque"
+    "alpha_blending"
+    "meshkin"
+    "composition"
 )
 

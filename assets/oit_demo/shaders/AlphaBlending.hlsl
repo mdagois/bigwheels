@@ -14,7 +14,7 @@
 
 #define IS_SHADER
 #include "Common.hlsli"
-#include "RenderVS.hlsli"
+#include "TransparencyVS.hlsli"
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
