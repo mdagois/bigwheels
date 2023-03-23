@@ -12,8 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define SHADER_GLOBALS_REGISTER		b0
-#define GRAPHICS_BUFFER_REGISTER	t1
+#if defined(IS_SHADER)
+# define SHADER_REGISTER(type, num) type##num
+#else
+# define SHADER_REGISTER(type, num) num
+#endif
+
+#define SHADER_GLOBALS_REGISTER		SHADER_REGISTER(b, 0)
+#define GRAPHICS_BUFFER_REGISTER	SHADER_REGISTER(t, 1)
+
+#define GRAPHICS_BUFFER_WIDTH		4096
+#define GRAPHICS_BUFFER_HEIGHT		GRAPHICS_BUFFER_WIDTH
 
 struct ShaderGlobals
 {

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#define IS_SHADER
 #include "Common.hlsli"
 
 #if defined(PPX_D3D11)
@@ -28,34 +29,39 @@ StructuredBuffer<Pixel> g_Pixels : register(GRAPHICS_BUFFER_REGISTER, space0);
 struct VSOutput
 {
 	float4 Position : SV_POSITION;
-	float3 Color    : COLOR;
+	float2 PixelCoord : TEXCOORD;
 };
 
 VSOutput vsmain(uint VertexID : SV_VertexID)
 {
-	const float2 vertices[] =
-	{
-		float2(-1.0f, -1.0f),
-		float2(+1.0f, -1.0f),
-		float2(-1.0f, +1.0f),
+	const float windowW = g_Globals.Resolution.x;
+	const float windowH = g_Globals.Resolution.y;
+	const float screenW = g_Globals.Resolution.z;
+	const float screenH = g_Globals.Resolution.w;
 
-		float2(-1.0f, +1.0f),
-		float2(+1.0f, -1.0f),
-		float2(+1.0f, +1.0f),
+	const float4 vertices[] =
+	{
+		float4(-1.0f, -1.0f, 0.0f,    screenH),
+		float4(+1.0f, -1.0f, screenW, screenH),
+		float4(-1.0f, +1.0f, 0.0f,    0.0f),
+
+		float4(-1.0f, +1.0f, 0.0f,    0.0f),
+		float4(+1.0f, -1.0f, screenW, screenH),
+		float4(+1.0f, +1.0f, screenW, 0.0f),
 	};
 
-	const float2 scale = float2(
-		g_Globals.Resolution.z / g_Globals.Resolution.x,
-		g_Globals.Resolution.w / g_Globals.Resolution.y);
+	const float2 scale = float2(screenW / windowW, screenH / windowH);
 
 	VSOutput result;
-	result.Position = float4(vertices[VertexID] * scale, 0.0f, 1.0f);
-	result.Color = float3(1.0f, 0.0f, 0.0f);
+	result.Position = float4(vertices[VertexID].xy * scale, 0.0f, 1.0f);
+	result.PixelCoord = vertices[VertexID].zw;
 	return result;
 }
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-	return float4(input.Color, 1.0f);
+	const uint pixelIndex = (uint)input.PixelCoord.y * GRAPHICS_BUFFER_WIDTH + (uint)input.PixelCoord.x;
+	const float4 color = g_Pixels.Load(pixelIndex).Color;
+	return float4(color.xyz, 1.0f);
 }
 

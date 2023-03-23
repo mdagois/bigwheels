@@ -22,7 +22,7 @@ void XlsViewerApp::Config(ppx::ApplicationSettings& settings)
     settings.appName          = "xls_viewer";
 
     settings.enableImGui      = false;
-    settings.grfx.enableDebug = false;
+    settings.grfx.enableDebug = true;
 
 #if defined(USE_DX11)
     settings.grfx.api         = grfx::API_DX_11_1;
@@ -63,7 +63,8 @@ void XlsViewerApp::Setup()
 
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{GRAPHICS_BUFFER_REGISTER, grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mScreenDescriptorSetLayout));
     }
 
@@ -73,21 +74,11 @@ void XlsViewerApp::Setup()
         bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
         bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mScreenUniformBuffer));
-
-        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mScreenDescriptorSetLayout, &mScreenDescriptorSet));
-
-        grfx::WriteDescriptor write = {};
-        write.binding               = 0;
-        write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.bufferOffset          = 0;
-        write.bufferRange           = PPX_WHOLE_SIZE;
-        write.pBuffer               = mScreenUniformBuffer;
-        PPX_CHECKED_CALL(mScreenDescriptorSet->UpdateDescriptors(1, &write));
     }
 
 	{
         grfx::BufferCreateInfo bufferCreateInfo           = {};
-        bufferCreateInfo.size                             = GRAPHICS_BUFFER_SIZE;
+        bufferCreateInfo.size                             = GRAPHICS_BUFFER_BYTE_SIZE;
         bufferCreateInfo.structuredElementStride          = BYTES_PER_PIXEL;
         bufferCreateInfo.usageFlags.bits.structuredBuffer = true;
         bufferCreateInfo.memoryUsage                      = grfx::MEMORY_USAGE_CPU_TO_GPU;
@@ -96,8 +87,28 @@ void XlsViewerApp::Setup()
 
         void* pAddress = nullptr;
         PPX_CHECKED_CALL(mScreenPixelBuffer->MapMemory(0, &pAddress));
-        memset(pAddress, 0, GRAPHICS_BUFFER_SIZE);
+        memset(pAddress, 0, GRAPHICS_BUFFER_BYTE_SIZE);
         mScreenPixelBuffer->UnmapMemory();
+	}
+
+	{
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mScreenDescriptorSetLayout, &mScreenDescriptorSet));
+
+        grfx::WriteDescriptor writes[2]  = {};
+        writes[0].binding                = SHADER_GLOBALS_REGISTER;
+        writes[0].type                   = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writes[0].bufferOffset           = 0;
+        writes[0].bufferRange            = PPX_WHOLE_SIZE;
+        writes[0].pBuffer                = mScreenUniformBuffer;
+
+        writes[1].binding                = GRAPHICS_BUFFER_REGISTER;
+        writes[1].arrayIndex             = 0;
+        writes[1].type                   = grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER;
+        writes[1].bufferOffset           = 0;
+        writes[1].bufferRange            = PPX_WHOLE_SIZE;
+        writes[1].structuredElementCount = GRAPHICS_BUFFER_ELEMENTS_COUNT;
+        writes[1].pBuffer                = mScreenPixelBuffer;
+        PPX_CHECKED_CALL(mScreenDescriptorSet->UpdateDescriptors(2, writes));
 	}
 
     {
@@ -180,9 +191,22 @@ void XlsViewerApp::Render()
 	//TODO Properly set these
 	shaderGlobals.Resolution.x = 1280.0f;
 	shaderGlobals.Resolution.y = 720.0f;
-	shaderGlobals.Resolution.w = 600.0f;
 	shaderGlobals.Resolution.z = 600.0f;
+	shaderGlobals.Resolution.w = 600.0f;
 	mScreenUniformBuffer->CopyFromSource(sizeof(ShaderGlobals), &shaderGlobals);
+
+    Pixel* pPixels = nullptr;
+    PPX_CHECKED_CALL(mScreenPixelBuffer->MapMemory(0, reinterpret_cast<void**>(&pPixels)));
+	for(uint32_t j = 0; j < 600; ++j)
+	{
+		const float red = (j / 100) % 2 == 0 ? 1.0f : 0.0f;
+		for(uint32_t i = 0; i < 600; ++i)
+		{
+			const float blue = (i / 50) % 2 == 0 ? 1.0f : 0.0f;
+			pPixels[j * GRAPHICS_BUFFER_WIDTH + i].Color = float4(red, 0.0f, blue, 1.0f);
+		}
+	}
+    mScreenPixelBuffer->UnmapMemory();
 
     RecordCommandBuffer(imageIndex);
 
