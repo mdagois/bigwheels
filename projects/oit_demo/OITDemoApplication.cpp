@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//TODO Rename composition to composite
 //TODO Cleanup objects
 //TODO Control clear color from ImGui
 //TODO Choice of cubemaps as background
@@ -193,7 +194,7 @@ void OITDemoApp::SetupCommon()
             createInfo.renderTargetCount               = 1;
             createInfo.pRenderTargetImages[0]          = mTransparencyTexture->GetImage();
             createInfo.pDepthStencilImage              = mOpaquePass->GetDepthStencilTexture()->GetImage();
-            createInfo.depthStencilState               = grfx::RESOURCE_STATE_DEPTH_STENCIL_READ;
+            createInfo.depthStencilState               = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
             createInfo.renderTargetClearValues[0]      = {0, 0, 0, 0};
             createInfo.depthStencilClearValue          = {1.0f, 0xFF};
             PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mTransparencyPass));
@@ -274,60 +275,6 @@ void OITDemoApp::SetupCommon()
 }
 
 #if 0
-void OITDemoApp::SetupBackground()
-{
-    // Descriptor
-    {
-        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mBackground.descriptorSetLayout));
-
-        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mBackground.descriptorSetLayout, &mBackground.descriptorSet));
-
-        grfx::WriteDescriptor write = {};
-        write.binding = SHADER_GLOBALS_REGISTER;
-        write.type = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.bufferOffset = 0;
-        write.bufferRange = PPX_WHOLE_SIZE;
-        write.pBuffer = mShaderGlobalsBuffer;
-        PPX_CHECKED_CALL(mBackground.descriptorSet->UpdateDescriptors(1, &write));
-    }
-
-    // Pipeline
-    {
-        grfx::ShaderModulePtr VS, PS;
-        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Background.vs", &VS));
-        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Background.ps", &PS));
-
-        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-        piCreateInfo.setCount                          = 1;
-        piCreateInfo.sets[0].set                       = 0;
-        piCreateInfo.sets[0].pLayout                   = mBackground.descriptorSetLayout;
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mBackground.pipelineInterface));
-
-        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-        gpCreateInfo.VS                                 = {VS, "vsmain"};
-        gpCreateInfo.PS                                 = {PS, "psmain"};
-        gpCreateInfo.vertexInputState.bindingCount      = 1;
-        gpCreateInfo.vertexInputState.bindings[0]       = mMonkeyMesh->GetDerivedVertexBindings()[0];
-        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-        gpCreateInfo.cullMode                           = grfx::CULL_MODE_FRONT;
-        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-        gpCreateInfo.depthReadEnable                    = true;
-        gpCreateInfo.depthWriteEnable                   = true;
-        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-        gpCreateInfo.outputState.renderTargetCount      = 1;
-        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-        gpCreateInfo.pPipelineInterface                 = mBackground.pipelineInterface;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mBackground.pipeline));
-
-        GetDevice()->DestroyShaderModule(VS);
-        GetDevice()->DestroyShaderModule(PS);
-    }
-}
-
 void OITDemoApp::SetupAlphaBlending()
 {
     // Descriptor
@@ -508,66 +455,8 @@ void OITDemoApp::SetupMeshkin()
 void OITDemoApp::Setup()
 {
     SetupCommon();
-    //SetupBackground();
     //SetupAlphaBlending();
     //SetupMeshkin();
-}
-
-#if 0
-void OITDemoApp::DrawBackground()
-{
-    if(!mGuiParameters.displayBackground)
-    {
-        return;
-    }
-    mCommandBuffer->BindGraphicsDescriptorSets(mBackground.pipelineInterface, 1, &mBackground.descriptorSet);
-    mCommandBuffer->BindGraphicsPipeline(mBackground.pipeline);
-    mCommandBuffer->BindIndexBuffer(mBackgroundMesh);
-    mCommandBuffer->BindVertexBuffers(mBackgroundMesh);
-    mCommandBuffer->DrawIndexed(mBackgroundMesh->GetIndexCount());
-}
-#endif
-
-void OITDemoApp::DrawGui()
-{
-    if(ImGui::Begin("Parameters"))
-    {
-        const char* algorithmChoices[] =
-        {
-            "Alpha blending",
-            "Meshkin",
-        };
-        static_assert(IM_ARRAYSIZE(algorithmChoices) == ALGORITHMS_COUNT, "Algorithm count mismatch");
-        ImGui::Combo("Algorithm", reinterpret_cast<int32_t*>(&mGuiParameters.algorithm), algorithmChoices, IM_ARRAYSIZE(algorithmChoices));
-
-        ImGui::SliderFloat("Opacity", &mGuiParameters.meshOpacity, 0.0f, 1.0f, "%.2f");
-        ImGui::Checkbox("Display background", &mGuiParameters.displayBackground);
-
-        ImGui::Separator();
-
-        switch(mGuiParameters.algorithm)
-        {
-            case ALGORITHM_ALPHA_BLENDING:
-            {
-                const char* faceModeChoices[] =
-                {
-                    "All",
-                    "Back first, then front",
-                    "Back only",
-                    "Front only",
-                };
-                static_assert(IM_ARRAYSIZE(faceModeChoices) == FACE_MODES_COUNT, "Face modes count mismatch");
-                ImGui::Combo("Face draw mode", reinterpret_cast<int32_t*>(&mGuiParameters.faceMode), faceModeChoices, IM_ARRAYSIZE(faceModeChoices));
-                break;
-            }
-            default:
-            {
-                break;
-            }
-        }
-    }
-    ImGui::End();
-    DrawImGui(mCommandBuffer);
 }
 
 #if 0
@@ -718,6 +607,121 @@ void OITDemoApp::Update()
         shaderGlobals.meshOpacity = mGuiParameters.meshOpacity;
         mShaderGlobalsBuffer->CopyFromSource(sizeof(shaderGlobals), &shaderGlobals);
     }
+
+    // GUI
+    if(ImGui::Begin("Parameters"))
+    {
+        const char* algorithmChoices[] =
+        {
+            "Alpha blending",
+            "Meshkin",
+        };
+        static_assert(IM_ARRAYSIZE(algorithmChoices) == ALGORITHMS_COUNT, "Algorithm count mismatch");
+        ImGui::Combo("Algorithm", reinterpret_cast<int32_t*>(&mGuiParameters.algorithm), algorithmChoices, IM_ARRAYSIZE(algorithmChoices));
+
+        ImGui::SliderFloat("Opacity", &mGuiParameters.meshOpacity, 0.0f, 1.0f, "%.2f");
+        ImGui::Checkbox("Display background", &mGuiParameters.displayBackground);
+
+        ImGui::Separator();
+
+        switch(mGuiParameters.algorithm)
+        {
+            case ALGORITHM_ALPHA_BLENDING:
+            {
+                const char* faceModeChoices[] =
+                {
+                    "All",
+                    "Back first, then front",
+                    "Back only",
+                    "Front only",
+                };
+                static_assert(IM_ARRAYSIZE(faceModeChoices) == FACE_MODES_COUNT, "Face modes count mismatch");
+                ImGui::Combo("Face draw mode", reinterpret_cast<int32_t*>(&mGuiParameters.faceMode), faceModeChoices, IM_ARRAYSIZE(faceModeChoices));
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
+    }
+    ImGui::End();
+}
+
+void OITDemoApp::RecordOpaque()
+{
+    mCommandBuffer->TransitionImageLayout(
+        mOpaquePass,
+        grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET,
+        grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
+    mCommandBuffer->BeginRenderPass(mOpaquePass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_ALL);
+
+    mCommandBuffer->SetScissors(mOpaquePass->GetScissor());
+    mCommandBuffer->SetViewports(mOpaquePass->GetViewport());
+
+    if(mGuiParameters.displayBackground)
+    {
+        mCommandBuffer->BindGraphicsDescriptorSets(mOpaquePipelineInterface, 1, &mOpaqueDescriptorSet);
+        mCommandBuffer->BindGraphicsPipeline(mOpaquePipeline);
+        mCommandBuffer->BindIndexBuffer(mBackgroundMesh);
+        mCommandBuffer->BindVertexBuffers(mBackgroundMesh);
+        mCommandBuffer->DrawIndexed(mBackgroundMesh->GetIndexCount());
+    }
+
+    mCommandBuffer->EndRenderPass();
+    mCommandBuffer->TransitionImageLayout(
+        mOpaquePass,
+        grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_SHADER_RESOURCE,
+        grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+}
+
+void OITDemoApp::RecordTransparency()
+{
+    mCommandBuffer->TransitionImageLayout(
+        mTransparencyPass,
+        grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET,
+        grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
+    mCommandBuffer->BeginRenderPass(mTransparencyPass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_RENDER_TARGETS);
+
+    mCommandBuffer->SetScissors(mTransparencyPass->GetScissor());
+    mCommandBuffer->SetViewports(mTransparencyPass->GetViewport());
+
+    mCommandBuffer->EndRenderPass();
+    mCommandBuffer->TransitionImageLayout(
+        mTransparencyPass,
+        grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_SHADER_RESOURCE,
+        grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+}
+
+void OITDemoApp::RecordComposition(grfx::RenderPassPtr compositionPass)
+{
+    PPX_ASSERT_MSG(!compositionPass.IsNull(), "composition pass object is null");
+
+    mCommandBuffer->TransitionImageLayout(
+        compositionPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES,
+        grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
+
+    grfx::RenderPassBeginInfo beginInfo = {};
+    beginInfo.pRenderPass               = compositionPass;
+    beginInfo.renderArea                = compositionPass->GetRenderArea();
+    beginInfo.RTVClearCount             = 1;
+    beginInfo.RTVClearValues[0]         = {{0, 0, 0, 0}};
+    beginInfo.DSVClearValue             = {1.0f, 0xFF};
+    mCommandBuffer->BeginRenderPass(&beginInfo);
+
+    mCommandBuffer->SetScissors(compositionPass->GetScissor());
+    mCommandBuffer->SetViewports(compositionPass->GetViewport());
+
+    mCommandBuffer->BindGraphicsDescriptorSets(mCompositionPipelineInterface, 1, &mCompositionDescriptorSet);
+    mCommandBuffer->BindGraphicsPipeline(mCompositionPipeline);
+    mCommandBuffer->Draw(3);
+
+    DrawImGui(mCommandBuffer);
+    
+    mCommandBuffer->EndRenderPass();
+    mCommandBuffer->TransitionImageLayout(
+        compositionPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES,
+        grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
 }
 
 void OITDemoApp::Render()
@@ -727,48 +731,15 @@ void OITDemoApp::Render()
     PPX_CHECKED_CALL(mImageAcquiredFence->WaitAndReset());
     PPX_CHECKED_CALL(mRenderCompleteFence->WaitAndReset());
 
+    // Update state
     Update();
 
     // Record command buffer
-#if 0
-    grfx::RenderPassPtr finalRenderPass = GetSwapchain()->GetRenderPass(imageIndex);
-    PPX_ASSERT_MSG(!finalRenderPass.IsNull(), "render pass object is null");
-    switch(mGuiParameters.algorithm)
-    {
-        case ALGORITHM_ALPHA_BLENDING:
-            RecordAlphaBlending(finalRenderPass);
-            break;
-        case ALGORITHM_MESHKIN:
-            RecordMeshkin(finalRenderPass);
-            break;
-        default:
-            PPX_ASSERT_MSG(false, "unknown algorithm");
-            break;
-    }
-#else
-    grfx::RenderPassPtr finalRenderPass = GetSwapchain()->GetRenderPass(imageIndex);
-    PPX_ASSERT_MSG(!finalRenderPass.IsNull(), "render pass object is null");
-
     PPX_CHECKED_CALL(mCommandBuffer->Begin());
-    mCommandBuffer->TransitionImageLayout(finalRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
-
-    grfx::RenderPassBeginInfo beginInfo = {};
-    beginInfo.pRenderPass               = finalRenderPass;
-    beginInfo.renderArea                = finalRenderPass->GetRenderArea();
-    beginInfo.RTVClearCount             = 1;
-    beginInfo.RTVClearValues[0]         = {{0, 0, 0, 0}};
-    beginInfo.DSVClearValue             = {1.0f, 0xFF};
-    mCommandBuffer->BeginRenderPass(&beginInfo);
-
-    mCommandBuffer->SetScissors(GetScissor());
-    mCommandBuffer->SetViewports(GetViewport());
-
-    DrawGui();
-
-    mCommandBuffer->EndRenderPass();
-    mCommandBuffer->TransitionImageLayout(finalRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
+    RecordOpaque();
+    RecordTransparency();
+    RecordComposition(GetSwapchain()->GetRenderPass(imageIndex));
     PPX_CHECKED_CALL(mCommandBuffer->End());
-#endif
 
     // Submit and present
     grfx::SubmitInfo submitInfo     = {};
