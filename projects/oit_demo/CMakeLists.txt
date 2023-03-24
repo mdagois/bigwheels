@@ -18,7 +18,11 @@ project(oit_demo)
 
 add_samples_for_all_apis(
     NAME ${PROJECT_NAME}
-    SOURCES "OITDemoApplication.h" "OITDemoApplication.cpp" "main.cpp"
+    SOURCES
+	"OITDemoApplication.h" "OITDemoApplication.cpp"
+	"AlphaBlending.cpp"
+	"Meshkin.cpp"
+	"main.cpp"
     SHADER_DEPENDENCIES "shader_oit_demo"
     ADDITIONAL_INCLUDE_DIRECTORIES "${PPX_DIR}/assets/oit_demo"
 )
