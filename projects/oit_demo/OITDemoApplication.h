@@ -59,16 +59,16 @@ private:
 
 private:
     void SetupCommon();
-    //void SetupAlphaBlending();
-    //void SetupMeshkin();
+    void SetupAlphaBlending();
+    void SetupMeshkin();
 
     void Update();
 
     void RecordOpaque();
+    void RecordAlphaBlending();
+    void RecordMeshkin();
     void RecordTransparency();
-    void RecordComposition(grfx::RenderPassPtr compositionPass);
-    //void RecordAlphaBlending(grfx::RenderPassPtr finalRenderPass);
-    //void RecordMeshkin(grfx::RenderPassPtr finalRenderPass);
+    void RecordComposition(grfx::RenderPassPtr renderPass);
 
 private:
     GuiParameters                mGuiParameters;
