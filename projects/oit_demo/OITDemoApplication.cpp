@@ -153,8 +153,8 @@ void OITDemoApp::SetupCommon()
             gpCreateInfo.depthWriteEnable                   = true;
             gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
             gpCreateInfo.outputState.renderTargetCount      = 1;
-            gpCreateInfo.outputState.renderTargetFormats[0] = mOpaquePass->GetRenderTargetTexture(0)->GeImageFormat();
-            gpCreateInfo.outputState.depthStencilFormat     = mOpaquePass->GetDepthStencilTexture()->GeImageFormat();
+            gpCreateInfo.outputState.renderTargetFormats[0] = mOpaquePass->GetRenderTargetTexture(0)->GetImageFormat();
+            gpCreateInfo.outputState.depthStencilFormat     = mOpaquePass->GetDepthStencilTexture()->GetImageFormat();
             gpCreateInfo.pPipelineInterface                 = mOpaquePipelineInterface;
             PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mOpaquePipeline));
 
@@ -445,8 +445,8 @@ void OITDemoApp::SetupMeshkin()
             gpCreateInfo.colorBlendState.blendAttachments[0].alphaBlendOp        = grfx::BLEND_OP_ADD;
             gpCreateInfo.colorBlendState.blendAttachments[0].colorWriteMask      = grfx::ColorComponentFlags::RGBA();
             gpCreateInfo.outputState.renderTargetCount                           = 1;
-            gpCreateInfo.outputState.renderTargetFormats[0]                      = mMeshkin.transparencyPass->GetRenderTargetTexture(0)->GeImageFormat();
-            gpCreateInfo.outputState.depthStencilFormat                          = mMeshkin.transparencyPass->GetDepthStencilTexture()->GeImageFormat();
+            gpCreateInfo.outputState.renderTargetFormats[0]                      = mMeshkin.transparencyPass->GetRenderTargetTexture(0)->GetImageFormat();
+            gpCreateInfo.outputState.depthStencilFormat                          = mMeshkin.transparencyPass->GetDepthStencilTexture()->GetImageFormat();
             gpCreateInfo.pPipelineInterface                                      = mMeshkin.renderPipelineInterface;
 
             PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mMeshkin.renderPipeline));
