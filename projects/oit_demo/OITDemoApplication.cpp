@@ -184,6 +184,20 @@ void OITDemoApp::SetupCommon()
             createInfo.DSVClearValue                   = {1.0f, 0xFF};
             PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mTransparencyTexture));
         }
+
+        // Pass
+        {
+            grfx::DrawPassCreateInfo2 createInfo       = {};
+            createInfo.width                           = GetSwapchain()->GetWidth();
+            createInfo.height                          = GetSwapchain()->GetHeight();
+            createInfo.renderTargetCount               = 1;
+            createInfo.pRenderTargetImages[0]          = mTransparencyTexture->GetImage();
+            createInfo.pDepthStencilImage              = mOpaquePass->GetDepthStencilTexture()->GetImage();
+            createInfo.depthStencilState               = grfx::RESOURCE_STATE_DEPTH_STENCIL_READ;
+            createInfo.renderTargetClearValues[0]      = {0, 0, 0, 0};
+            createInfo.depthStencilClearValue          = {1.0f, 0xFF};
+            PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mTransparencyPass));
+        }
     }
 
     // Composition

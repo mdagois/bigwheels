@@ -94,6 +94,7 @@ private:
     grfx::GraphicsPipelinePtr    mOpaquePipeline;
 
     grfx::TexturePtr             mTransparencyTexture;
+    grfx::DrawPassPtr            mTransparencyPass;
 
     grfx::SamplerPtr             mCompositionSampler;
     grfx::DescriptorSetLayoutPtr mCompositionDescriptorSetLayout;
