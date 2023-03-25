@@ -208,13 +208,13 @@ void OITDemoApp::SetupCommon()
             grfx::SamplerCreateInfo createInfo = {};
             createInfo.magFilter               = grfx::FILTER_NEAREST;
             createInfo.minFilter               = grfx::FILTER_NEAREST;
-            PPX_CHECKED_CALL(GetDevice()->CreateSampler(&createInfo, &mCompositeSampler));
+            PPX_CHECKED_CALL(GetDevice()->CreateSampler(&createInfo, &mNearestSampler));
         }
 
         // Descriptor
         {
             grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{COMPOSITE_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{NEAREST_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
             layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{OPAQUE_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
             layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{TRANSPARENCY_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
             PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mCompositeDescriptorSetLayout));
@@ -222,9 +222,9 @@ void OITDemoApp::SetupCommon()
 
             grfx::WriteDescriptor writes[3] = {};
 
-            writes[0].binding = COMPOSITE_SAMPLER_REGISTER;
+            writes[0].binding = NEAREST_SAMPLER_REGISTER;
             writes[0].type = grfx::DESCRIPTOR_TYPE_SAMPLER;
-            writes[0].pSampler = mCompositeSampler;
+            writes[0].pSampler = mNearestSampler;
 
             writes[1].binding = OPAQUE_TEXTURE_REGISTER;
             writes[1].arrayIndex = 0;

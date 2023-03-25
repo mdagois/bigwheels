@@ -34,6 +34,18 @@ generate_rules_for_shader(
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
+    "new_blended_operator_gather"
+	SOURCE "${PPX_DIR}/assets/oit_demo/shaders/NewBlendedOperatorGather.hlsl"
+    INCLUDES ${INCLUDE_FILES}
+    STAGES "ps" "vs")
+
+generate_rules_for_shader(
+    "new_blended_operator_combine"
+	SOURCE "${PPX_DIR}/assets/oit_demo/shaders/NewBlendedOperatorCombine.hlsl"
+    INCLUDES ${INCLUDE_FILES}
+    STAGES "ps" "vs")
+
+generate_rules_for_shader(
     "composite"
     SOURCE "${PPX_DIR}/assets/oit_demo/shaders/Composite.hlsl"
     INCLUDES ${INCLUDE_FILES}

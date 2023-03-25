@@ -88,6 +88,7 @@ private:
     grfx::MeshPtr                mMonkeyMesh;
 
     grfx::BufferPtr              mShaderGlobalsBuffer;
+    grfx::SamplerPtr             mNearestSampler;
 
     grfx::DrawPassPtr            mOpaquePass;
     grfx::DescriptorSetLayoutPtr mOpaqueDescriptorSetLayout;
@@ -98,7 +99,6 @@ private:
     grfx::TexturePtr             mTransparencyTexture;
     grfx::DrawPassPtr            mTransparencyPass;
 
-    grfx::SamplerPtr             mCompositeSampler;
     grfx::DescriptorSetLayoutPtr mCompositeDescriptorSetLayout;
     grfx::DescriptorSetPtr       mCompositeDescriptorSet;
     grfx::PipelineInterfacePtr   mCompositePipelineInterface;
