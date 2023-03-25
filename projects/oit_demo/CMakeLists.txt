@@ -22,6 +22,7 @@ add_samples_for_all_apis(
 	"OITDemoApplication.h" "OITDemoApplication.cpp"
 	"AlphaBlending.cpp"
 	"Meshkin.cpp"
+	"NewBlendedOperator.cpp"
 	"main.cpp"
     SHADER_DEPENDENCIES "shader_oit_demo"
     ADDITIONAL_INCLUDE_DIRECTORIES "${PPX_DIR}/assets/oit_demo"

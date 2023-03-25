@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//TODO Rename composition to composite
+//TODO Rename Meshkin to WeightedSum
+//TODO Rename AlphaBlending to UnsortedOver
+//TODO Rename Composition to Composite
 //TODO Cleanup objects
 //TODO Control clear color from ImGui
 //TODO Choice of cubemaps as background
@@ -279,6 +281,7 @@ void OITDemoApp::Setup()
     SetupCommon();
     SetupAlphaBlending();
     SetupMeshkin();
+    SetupNewBlendedOperator();
 }
 
 void OITDemoApp::Update()
@@ -315,6 +318,7 @@ void OITDemoApp::Update()
         {
             "Alpha blending",
             "Meshkin",
+			"New Blended operator",
         };
         static_assert(IM_ARRAYSIZE(algorithmChoices) == ALGORITHMS_COUNT, "Algorithm count mismatch");
         ImGui::Combo("Algorithm", reinterpret_cast<int32_t*>(&mGuiParameters.algorithm), algorithmChoices, IM_ARRAYSIZE(algorithmChoices));
@@ -384,6 +388,9 @@ void OITDemoApp::RecordTransparency()
             break;
         case ALGORITHM_MESHKIN:
             RecordMeshkin();
+            break;
+        case ALGORITHM_NEW_BLENDED_OPERATOR:
+            RecordNewBlendedOperator();
             break;
         default:
             PPX_ASSERT_MSG(false, "unknown algorithm");

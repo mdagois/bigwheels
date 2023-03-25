@@ -29,6 +29,7 @@ private:
     {
         ALGORITHM_ALPHA_BLENDING,
         ALGORITHM_MESHKIN,
+        ALGORITHM_NEW_BLENDED_OPERATOR,
         ALGORITHMS_COUNT,
     };
 
@@ -61,12 +62,14 @@ private:
     void SetupCommon();
     void SetupAlphaBlending();
     void SetupMeshkin();
+    void SetupNewBlendedOperator();
 
     void Update();
 
     void RecordOpaque();
     void RecordAlphaBlending();
     void RecordMeshkin();
+    void RecordNewBlendedOperator();
     void RecordTransparency();
     void RecordComposition(grfx::RenderPassPtr renderPass);
 
