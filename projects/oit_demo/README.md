@@ -45,9 +45,9 @@ The following metrics are displayed to compare the algorithms to each other:
 
 | Algorithm                 | Type              | Additional options
 | ---                       | ---               | ---
-| Alpha blending            | Approximate       | Split draw calls for back/front faces
+| Unsorted over             | Approximate       | Split draw calls for back/front faces
 | Per-pixel linked lists    | Exact             | Control the size of the fragment buffer
 | Depth peeling             | Exact             | Number of layers
-| Meshkin                   | Approximate       |
-| Weighted average          | Approximate       |
+| Weighted sum              | Approximate       |
+| New blended operator      | Approximate       |
 

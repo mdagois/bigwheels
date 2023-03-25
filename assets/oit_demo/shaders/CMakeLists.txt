@@ -22,20 +22,20 @@ generate_rules_for_shader(
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
-    "alpha_blending"
-    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/AlphaBlending.hlsl"
+    "unsorted_over"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/UnsortedOver.hlsl"
     INCLUDES ${INCLUDE_FILES}
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
-    "meshkin"
-    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/Meshkin.hlsl"
+    "weighted_sum"
+	SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedSum.hlsl"
     INCLUDES ${INCLUDE_FILES}
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
-    "composition"
-    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/Composition.hlsl"
+    "composite"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/Composite.hlsl"
     INCLUDES ${INCLUDE_FILES}
     STAGES "ps" "vs")
 
@@ -43,8 +43,8 @@ generate_group_rule_for_shader(
     "shader_oit_demo"
     CHILDREN
     "opaque"
-    "alpha_blending"
-    "meshkin"
-    "composition"
+    "unsorted_over"
+    "weighted_sum"
+    "composite"
 )
 

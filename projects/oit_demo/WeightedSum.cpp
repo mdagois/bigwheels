@@ -15,15 +15,15 @@
 #include "OITDemoApplication.h"
 #include "shaders/Common.hlsli"
 
-void OITDemoApp::SetupAlphaBlending()
+void OITDemoApp::SetupWeightedSum()
 {
     // Descriptor
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mAlphaBlending.descriptorSetLayout));
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mWeightedSum.descriptorSetLayout));
 
-        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mAlphaBlending.descriptorSetLayout, &mAlphaBlending.descriptorSet));
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mWeightedSum.descriptorSetLayout, &mWeightedSum.descriptorSet));
 
         grfx::WriteDescriptor write = {};
         write.binding = SHADER_GLOBALS_REGISTER;
@@ -31,7 +31,7 @@ void OITDemoApp::SetupAlphaBlending()
         write.bufferOffset = 0;
         write.bufferRange = PPX_WHOLE_SIZE;
         write.pBuffer = mShaderGlobalsBuffer;
-        PPX_CHECKED_CALL(mAlphaBlending.descriptorSet->UpdateDescriptors(1, &write));
+        PPX_CHECKED_CALL(mWeightedSum.descriptorSet->UpdateDescriptors(1, &write));
     }
 
     // Pipeline
@@ -39,12 +39,12 @@ void OITDemoApp::SetupAlphaBlending()
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 1;
         piCreateInfo.sets[0].set                       = 0;
-        piCreateInfo.sets[0].pLayout                   = mAlphaBlending.descriptorSetLayout;
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mAlphaBlending.pipelineInterface));
+        piCreateInfo.sets[0].pLayout                   = mWeightedSum.descriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mWeightedSum.pipelineInterface));
 
         grfx::ShaderModulePtr VS, PS;
-        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "AlphaBlending.vs", &VS));
-        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "AlphaBlending.ps", &PS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedSum.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedSum.ps", &PS));
 
         grfx::GraphicsPipelineCreateInfo gpCreateInfo                        = {};
         gpCreateInfo.VS                                                      = {VS, "vsmain"};
@@ -53,6 +53,7 @@ void OITDemoApp::SetupAlphaBlending()
         gpCreateInfo.vertexInputState.bindings[0]                            = mMonkeyMesh->GetDerivedVertexBindings()[0];
         gpCreateInfo.inputAssemblyState.topology                             = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         gpCreateInfo.rasterState.polygonMode                                 = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.rasterState.cullMode                                    = grfx::CULL_MODE_NONE;
         gpCreateInfo.rasterState.frontFace                                   = grfx::FRONT_FACE_CCW;
         gpCreateInfo.rasterState.rasterizationSamples                        = grfx::SAMPLE_COUNT_1;
         gpCreateInfo.depthStencilState.depthTestEnable                       = true;
@@ -60,32 +61,24 @@ void OITDemoApp::SetupAlphaBlending()
         gpCreateInfo.colorBlendState.blendAttachmentCount                    = 1;
         gpCreateInfo.colorBlendState.blendAttachments[0].blendEnable         = true;
         gpCreateInfo.colorBlendState.blendAttachments[0].srcColorBlendFactor = grfx::BLEND_FACTOR_ONE;
-        gpCreateInfo.colorBlendState.blendAttachments[0].dstColorBlendFactor = grfx::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        gpCreateInfo.colorBlendState.blendAttachments[0].dstColorBlendFactor = grfx::BLEND_FACTOR_ONE;
         gpCreateInfo.colorBlendState.blendAttachments[0].colorBlendOp        = grfx::BLEND_OP_ADD;
         gpCreateInfo.colorBlendState.blendAttachments[0].srcAlphaBlendFactor = grfx::BLEND_FACTOR_ONE;
-        gpCreateInfo.colorBlendState.blendAttachments[0].dstAlphaBlendFactor = grfx::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        gpCreateInfo.colorBlendState.blendAttachments[0].dstAlphaBlendFactor = grfx::BLEND_FACTOR_ONE;
         gpCreateInfo.colorBlendState.blendAttachments[0].alphaBlendOp        = grfx::BLEND_OP_ADD;
         gpCreateInfo.colorBlendState.blendAttachments[0].colorWriteMask      = grfx::ColorComponentFlags::RGBA();
         gpCreateInfo.outputState.renderTargetCount                           = 1;
         gpCreateInfo.outputState.renderTargetFormats[0]                      = mTransparencyPass->GetRenderTargetTexture(0)->GetImageFormat();
         gpCreateInfo.outputState.depthStencilFormat                          = mTransparencyPass->GetDepthStencilTexture()->GetImageFormat();
-        gpCreateInfo.pPipelineInterface                                      = mAlphaBlending.pipelineInterface;
-
-        gpCreateInfo.rasterState.cullMode = grfx::CULL_MODE_NONE;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mAlphaBlending.meshAllFacesPipeline));
-
-        gpCreateInfo.rasterState.cullMode = grfx::CULL_MODE_FRONT;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mAlphaBlending.meshBackFacesPipeline));
-
-        gpCreateInfo.rasterState.cullMode = grfx::CULL_MODE_BACK;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mAlphaBlending.meshFrontFacesPipeline));
+        gpCreateInfo.pPipelineInterface                                      = mWeightedSum.pipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mWeightedSum.pipeline));
 
         GetDevice()->DestroyShaderModule(VS);
         GetDevice()->DestroyShaderModule(PS);
     }
 }
 
-void OITDemoApp::RecordAlphaBlending()
+void OITDemoApp::RecordWeightedSum()
 {
     mCommandBuffer->TransitionImageLayout(
         mTransparencyPass,
@@ -96,43 +89,11 @@ void OITDemoApp::RecordAlphaBlending()
     mCommandBuffer->SetScissors(mTransparencyPass->GetScissor());
     mCommandBuffer->SetViewports(mTransparencyPass->GetViewport());
 
-    mCommandBuffer->BindGraphicsDescriptorSets(mAlphaBlending.pipelineInterface, 1, &mAlphaBlending.descriptorSet);
+    mCommandBuffer->BindGraphicsDescriptorSets(mWeightedSum.pipelineInterface, 1, &mWeightedSum.descriptorSet);
+    mCommandBuffer->BindGraphicsPipeline(mWeightedSum.pipeline);
     mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
     mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
-    switch(mGuiParameters.faceMode)
-    {
-        case FACE_MODE_ALL:
-        {
-            mCommandBuffer->BindGraphicsPipeline(mAlphaBlending.meshAllFacesPipeline);
-            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
-            break;
-        }
-        case FACE_MODE_ALL_BACK_THEN_FRONT:
-        {
-            mCommandBuffer->BindGraphicsPipeline(mAlphaBlending.meshBackFacesPipeline);
-            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
-            mCommandBuffer->BindGraphicsPipeline(mAlphaBlending.meshFrontFacesPipeline);
-            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
-            break;
-        }
-        case FACE_MODE_BACK_ONLY:
-        {
-            mCommandBuffer->BindGraphicsPipeline(mAlphaBlending.meshBackFacesPipeline);
-            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
-            break;
-        }
-        case FACE_MODE_FRONT_ONLY:
-        {
-            mCommandBuffer->BindGraphicsPipeline(mAlphaBlending.meshFrontFacesPipeline);
-            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
-            break;
-        }
-        default:
-        {
-            PPX_ASSERT_MSG(false, "unknown face mode");
-            break;
-        }
-    }
+    mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
 
     mCommandBuffer->EndRenderPass();
     mCommandBuffer->TransitionImageLayout(

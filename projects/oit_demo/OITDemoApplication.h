@@ -27,8 +27,8 @@ public:
 private:
     enum Algorithm : int32_t
     {
-        ALGORITHM_ALPHA_BLENDING,
-        ALGORITHM_MESHKIN,
+        ALGORITHM_UNSORTED_OVER,
+        ALGORITHM_WEIGHTED_SUM,
         ALGORITHM_NEW_BLENDED_OPERATOR,
         ALGORITHMS_COUNT,
     };
@@ -46,7 +46,7 @@ private:
     {
         GuiParameters()
         : meshOpacity(1.0f)
-        , algorithm(ALGORITHM_ALPHA_BLENDING)
+        , algorithm(ALGORITHM_UNSORTED_OVER)
         , faceMode(FACE_MODE_ALL)
         , displayBackground(true)
         {
@@ -60,18 +60,18 @@ private:
 
 private:
     void SetupCommon();
-    void SetupAlphaBlending();
-    void SetupMeshkin();
+    void SetupUnsortedOver();
+    void SetupWeightedSum();
     void SetupNewBlendedOperator();
 
     void Update();
 
     void RecordOpaque();
-    void RecordAlphaBlending();
-    void RecordMeshkin();
+    void RecordUnsortedOver();
+    void RecordWeightedSum();
     void RecordNewBlendedOperator();
     void RecordTransparency();
-    void RecordComposition(grfx::RenderPassPtr renderPass);
+    void RecordComposite(grfx::RenderPassPtr renderPass);
 
 private:
     GuiParameters                mGuiParameters;
@@ -98,11 +98,11 @@ private:
     grfx::TexturePtr             mTransparencyTexture;
     grfx::DrawPassPtr            mTransparencyPass;
 
-    grfx::SamplerPtr             mCompositionSampler;
-    grfx::DescriptorSetLayoutPtr mCompositionDescriptorSetLayout;
-    grfx::DescriptorSetPtr       mCompositionDescriptorSet;
-    grfx::PipelineInterfacePtr   mCompositionPipelineInterface;
-    grfx::GraphicsPipelinePtr    mCompositionPipeline;
+    grfx::SamplerPtr             mCompositeSampler;
+    grfx::DescriptorSetLayoutPtr mCompositeDescriptorSetLayout;
+    grfx::DescriptorSetPtr       mCompositeDescriptorSet;
+    grfx::PipelineInterfacePtr   mCompositePipelineInterface;
+    grfx::GraphicsPipelinePtr    mCompositePipeline;
 
     struct
     {
@@ -113,7 +113,7 @@ private:
         grfx::GraphicsPipelinePtr    meshAllFacesPipeline;
         grfx::GraphicsPipelinePtr    meshBackFacesPipeline;
         grfx::GraphicsPipelinePtr    meshFrontFacesPipeline;
-    } mAlphaBlending;
+    } mUnsortedOver;
 
     struct
     {
@@ -122,6 +122,6 @@ private:
 
         grfx::PipelineInterfacePtr   pipelineInterface;
         grfx::GraphicsPipelinePtr    pipeline;
-    } mMeshkin;
+    } mWeightedSum;
 };
 

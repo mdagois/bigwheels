@@ -12,10 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//TODO Rename Meshkin to WeightedSum
-//TODO Rename AlphaBlending to UnsortedOver
-//TODO Rename Composition to Composite
 //TODO Cleanup objects
+//TODO Several meshes on top of each other
 //TODO Control clear color from ImGui
 //TODO Choice of cubemaps as background
 
@@ -203,30 +201,30 @@ void OITDemoApp::SetupCommon()
         }
     }
 
-    // Composition
+    // Composite
     {
         // Sampler
         {
             grfx::SamplerCreateInfo createInfo = {};
             createInfo.magFilter               = grfx::FILTER_NEAREST;
             createInfo.minFilter               = grfx::FILTER_NEAREST;
-            PPX_CHECKED_CALL(GetDevice()->CreateSampler(&createInfo, &mCompositionSampler));
+            PPX_CHECKED_CALL(GetDevice()->CreateSampler(&createInfo, &mCompositeSampler));
         }
 
         // Descriptor
         {
             grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{COMPOSITION_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{COMPOSITE_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
             layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{OPAQUE_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
             layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{TRANSPARENCY_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-            PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mCompositionDescriptorSetLayout));
-            PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mCompositionDescriptorSetLayout, &mCompositionDescriptorSet));
+            PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mCompositeDescriptorSetLayout));
+            PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mCompositeDescriptorSetLayout, &mCompositeDescriptorSet));
 
             grfx::WriteDescriptor writes[3] = {};
 
-            writes[0].binding = COMPOSITION_SAMPLER_REGISTER;
+            writes[0].binding = COMPOSITE_SAMPLER_REGISTER;
             writes[0].type = grfx::DESCRIPTOR_TYPE_SAMPLER;
-            writes[0].pSampler = mCompositionSampler;
+            writes[0].pSampler = mCompositeSampler;
 
             writes[1].binding = OPAQUE_TEXTURE_REGISTER;
             writes[1].arrayIndex = 0;
@@ -238,7 +236,7 @@ void OITDemoApp::SetupCommon()
             writes[2].type = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
             writes[2].pImageView = mTransparencyTexture->GetSampledImageView();
 
-            PPX_CHECKED_CALL(mCompositionDescriptorSet->UpdateDescriptors(3, writes));
+            PPX_CHECKED_CALL(mCompositeDescriptorSet->UpdateDescriptors(3, writes));
         }
 
         // Pipeline
@@ -246,12 +244,12 @@ void OITDemoApp::SetupCommon()
             grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
             piCreateInfo.setCount                          = 1;
             piCreateInfo.sets[0].set                       = 0;
-            piCreateInfo.sets[0].pLayout                   = mCompositionDescriptorSetLayout;
-            PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mCompositionPipelineInterface));
+            piCreateInfo.sets[0].pLayout                   = mCompositeDescriptorSetLayout;
+            PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mCompositePipelineInterface));
 
             grfx::ShaderModulePtr VS, PS;
-            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Composition.vs", &VS));
-            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Composition.ps", &PS));
+            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Composite.vs", &VS));
+            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Composite.ps", &PS));
 
             grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
             gpCreateInfo.VS                                 = {VS, "vsmain"};
@@ -267,8 +265,8 @@ void OITDemoApp::SetupCommon()
             gpCreateInfo.outputState.renderTargetCount      = 1;
             gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
             gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-            gpCreateInfo.pPipelineInterface                 = mCompositionPipelineInterface;
-            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mCompositionPipeline));
+            gpCreateInfo.pPipelineInterface                 = mCompositePipelineInterface;
+            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mCompositePipeline));
 
             GetDevice()->DestroyShaderModule(VS);
             GetDevice()->DestroyShaderModule(PS);
@@ -279,8 +277,8 @@ void OITDemoApp::SetupCommon()
 void OITDemoApp::Setup()
 {
     SetupCommon();
-    SetupAlphaBlending();
-    SetupMeshkin();
+    SetupUnsortedOver();
+    SetupWeightedSum();
     SetupNewBlendedOperator();
 }
 
@@ -316,9 +314,9 @@ void OITDemoApp::Update()
     {
         const char* algorithmChoices[] =
         {
-            "Alpha blending",
-            "Meshkin",
-			"New Blended operator",
+            "Unsorted over",
+            "Weighted sum",
+			"New blended operator",
         };
         static_assert(IM_ARRAYSIZE(algorithmChoices) == ALGORITHMS_COUNT, "Algorithm count mismatch");
         ImGui::Combo("Algorithm", reinterpret_cast<int32_t*>(&mGuiParameters.algorithm), algorithmChoices, IM_ARRAYSIZE(algorithmChoices));
@@ -330,7 +328,7 @@ void OITDemoApp::Update()
 
         switch(mGuiParameters.algorithm)
         {
-            case ALGORITHM_ALPHA_BLENDING:
+            case ALGORITHM_UNSORTED_OVER:
             {
                 const char* faceModeChoices[] =
                 {
@@ -383,11 +381,11 @@ void OITDemoApp::RecordTransparency()
 {
     switch(mGuiParameters.algorithm)
     {
-        case ALGORITHM_ALPHA_BLENDING:
-            RecordAlphaBlending();
+        case ALGORITHM_UNSORTED_OVER:
+            RecordUnsortedOver();
             break;
-        case ALGORITHM_MESHKIN:
-            RecordMeshkin();
+        case ALGORITHM_WEIGHTED_SUM:
+            RecordWeightedSum();
             break;
         case ALGORITHM_NEW_BLENDED_OPERATOR:
             RecordNewBlendedOperator();
@@ -398,9 +396,9 @@ void OITDemoApp::RecordTransparency()
     }
 }
 
-void OITDemoApp::RecordComposition(grfx::RenderPassPtr renderPass)
+void OITDemoApp::RecordComposite(grfx::RenderPassPtr renderPass)
 {
-    PPX_ASSERT_MSG(!renderPass.IsNull(), "composition pass object is null");
+    PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
 
     mCommandBuffer->TransitionImageLayout(
         renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES,
@@ -417,8 +415,8 @@ void OITDemoApp::RecordComposition(grfx::RenderPassPtr renderPass)
     mCommandBuffer->SetScissors(renderPass->GetScissor());
     mCommandBuffer->SetViewports(renderPass->GetViewport());
 
-    mCommandBuffer->BindGraphicsDescriptorSets(mCompositionPipelineInterface, 1, &mCompositionDescriptorSet);
-    mCommandBuffer->BindGraphicsPipeline(mCompositionPipeline);
+    mCommandBuffer->BindGraphicsDescriptorSets(mCompositePipelineInterface, 1, &mCompositeDescriptorSet);
+    mCommandBuffer->BindGraphicsPipeline(mCompositePipeline);
     mCommandBuffer->Draw(3);
 
     DrawImGui(mCommandBuffer);
@@ -443,7 +441,7 @@ void OITDemoApp::Render()
     PPX_CHECKED_CALL(mCommandBuffer->Begin());
     RecordOpaque();
     RecordTransparency();
-    RecordComposition(GetSwapchain()->GetRenderPass(imageIndex));
+    RecordComposite(GetSwapchain()->GetRenderPass(imageIndex));
     PPX_CHECKED_CALL(mCommandBuffer->End());
 
     // Submit and present

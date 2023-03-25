@@ -20,8 +20,8 @@ add_samples_for_all_apis(
     NAME ${PROJECT_NAME}
     SOURCES
 	"OITDemoApplication.h" "OITDemoApplication.cpp"
-	"AlphaBlending.cpp"
-	"Meshkin.cpp"
+	"UnsortedOver.cpp"
+	"WeightedSum.cpp"
 	"NewBlendedOperator.cpp"
 	"main.cpp"
     SHADER_DEPENDENCIES "shader_oit_demo"

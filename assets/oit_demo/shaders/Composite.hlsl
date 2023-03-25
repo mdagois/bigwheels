@@ -40,15 +40,15 @@ VSOutput vsmain(uint VertexID : SV_VertexID)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-SamplerState CompositionSampler  : register(COMPOSITION_SAMPLER_REGISTER);
+SamplerState CompositeSampler    : register(COMPOSITE_SAMPLER_REGISTER);
 Texture2D    OpaqueTexture       : register(OPAQUE_TEXTURE_REGISTER);
 Texture2D    TransparencyTexture : register(TRANSPARENCY_TEXTURE_REGISTER);
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-	const float3 opaqueColor = OpaqueTexture.Sample(CompositionSampler, input.TexCoord).rgb;
+	const float3 opaqueColor = OpaqueTexture.Sample(CompositeSampler, input.TexCoord).rgb;
 
-	const float4 transparencySample = TransparencyTexture.Sample(CompositionSampler, input.TexCoord);
+	const float4 transparencySample = TransparencyTexture.Sample(CompositeSampler, input.TexCoord);
 	const float3 transparencyColor = transparencySample.rgb;
 	const float coverage = transparencySample.a;
 
