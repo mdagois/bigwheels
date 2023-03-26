@@ -123,5 +123,22 @@ private:
         grfx::PipelineInterfacePtr   pipelineInterface;
         grfx::GraphicsPipelinePtr    pipeline;
     } mWeightedSum;
+
+    struct
+    {
+        grfx::TexturePtr             colorTexture;
+        grfx::TexturePtr             coverageTexture;
+        grfx::DrawPassPtr            gatherPass;
+
+        grfx::DescriptorSetLayoutPtr gatherDescriptorSetLayout;
+        grfx::DescriptorSetPtr       gatherDescriptorSet;
+        grfx::PipelineInterfacePtr   gatherPipelineInterface;
+        grfx::GraphicsPipelinePtr    gatherPipeline;
+
+        grfx::DescriptorSetLayoutPtr combineDescriptorSetLayout;
+        grfx::DescriptorSetPtr       combineDescriptorSet;
+        grfx::PipelineInterfacePtr   combinePipelineInterface;
+        grfx::GraphicsPipelinePtr    combinePipeline;
+    } mNewBlendedOperator;
 };
 

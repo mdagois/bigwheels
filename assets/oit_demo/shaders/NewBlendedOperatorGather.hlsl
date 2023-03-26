@@ -18,15 +18,15 @@
 
 struct PSOutput
 {
-	float4 color	: SV_TARGET0;
-	float  coverage : SV_TARGET1;
+    float4 color    : SV_TARGET0;
+    float  coverage : SV_TARGET1;
 };
 
-PSOutput psmain(VSOutput input) : SV_TARGET
+PSOutput psmain(VSOutput input)
 {
-	PSOutput output = (PSOutput)0;
-	output.color = float4(input.color * g_Globals.meshOpacity, g_Globals.meshOpacity);
-	output.coverage = (1.0f - g_Globals.meshOpacity);
-	return output;
+    PSOutput output = (PSOutput)0;
+    output.color = float4(input.color * g_Globals.meshOpacity, g_Globals.meshOpacity);
+    output.coverage = (1.0f - g_Globals.meshOpacity);
+    return output;
 }
 
