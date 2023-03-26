@@ -22,9 +22,9 @@ Texture2D    TransparencyTexture : register(TRANSPARENCY_TEXTURE_REGISTER);
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-	const float3 opaqueColor = OpaqueTexture.Sample(NearestSampler, input.TexCoord).rgb;
+	const float3 opaqueColor = OpaqueTexture.Sample(NearestSampler, input.uv).rgb;
 
-	const float4 transparencySample = TransparencyTexture.Sample(NearestSampler, input.TexCoord);
+	const float4 transparencySample = TransparencyTexture.Sample(NearestSampler, input.uv);
 	const float3 transparencyColor = transparencySample.rgb;
 	const float coverage = transparencySample.a;
 

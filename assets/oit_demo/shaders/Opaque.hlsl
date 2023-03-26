@@ -17,13 +17,13 @@
 
 struct VSOutput
 {
-    float4 Position : SV_POSITION;
+    float4 position : SV_POSITION;
 };
 
-VSOutput vsmain(float4 Position : POSITION)
+VSOutput vsmain(float4 position : POSITION)
 {
     VSOutput result;
-    result.Position = mul(g_Globals.backgroundMVP, Position);
+    result.position = mul(g_Globals.backgroundMVP, position);
     return result;
 }
 

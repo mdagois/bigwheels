@@ -14,15 +14,15 @@
 
 struct VSOutput
 {
-    float4 Position : SV_POSITION;
-    float3 Color    : COLOR;
+    float4 position : SV_POSITION;
+    float3 color    : COLOR;
 };
 
-VSOutput vsmain(float4 Position : POSITION)
+VSOutput vsmain(float4 position : POSITION)
 {
     VSOutput result;
-    result.Position = mul(g_Globals.meshMVP, Position);
-    result.Color = abs(Position.xyz);
+    result.position = mul(g_Globals.meshMVP, position);
+    result.color = abs(position.xyz);
     return result;
 }
 

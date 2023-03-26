@@ -16,8 +16,17 @@
 #include "Common.hlsli"
 #include "TransparencyVS.hlsli"
 
-float4 psmain(VSOutput input) : SV_TARGET
+struct PSOutput
 {
-    return float4(input.Color * g_Globals.meshOpacity, g_Globals.meshOpacity);
+	float4 color	: SV_TARGET0;
+	float  coverage : SV_TARGET1;
+};
+
+PSOutput psmain(VSOutput input) : SV_TARGET
+{
+	PSOutput output = (PSOutput)0;
+	output.color = float4(input.color * g_Globals.meshOpacity, g_Globals.meshOpacity);
+	output.coverage = (1.0f - g_Globals.meshOpacity);
+	return output;
 }
 
