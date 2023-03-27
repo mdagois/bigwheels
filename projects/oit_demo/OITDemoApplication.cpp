@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//TODO Cleanup objects
-//TODO Several meshes on top of each other
-//TODO Control clear color from ImGui
-//TODO Choice of cubemaps as background
+// TODO Cleanup objects
+// TODO Several meshes on top of each other
+// TODO Control clear color from ImGui
+// TODO Choice of cubemaps as background
 
 #include "OITDemoApplication.h"
 #include "ppx/graphics_util.h"
@@ -23,29 +23,33 @@
 
 void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName                    = "OIT demo";
+    settings.appName = "OIT demo";
 
-    settings.enableImGui                = true;
-    settings.grfx.enableDebug           = true;
+    settings.enableImGui      = true;
+    settings.grfx.enableDebug = true;
 
     settings.grfx.swapchain.colorFormat = grfx::FORMAT_B8G8R8A8_UNORM;
 
 #if defined(USE_DX11)
-    settings.grfx.api                   = grfx::API_DX_11_1;
+    settings.grfx.api = grfx::API_DX_11_1;
 #elif defined(USE_DX12)
-    settings.grfx.api                   = grfx::API_DX_12_0;
+    settings.grfx.api = grfx::API_DX_12_0;
 #elif defined(USE_VK)
-    settings.grfx.api                   = grfx::API_VK_1_1;
+    settings.grfx.api = grfx::API_VK_1_1;
 #else
-# error
+#error
 #endif
 #if defined(USE_DXIL)
-    settings.grfx.enableDXIL            = true;
+    settings.grfx.enableDXIL = true;
 #endif
 }
 
 void OITDemoApp::SetupCommon()
 {
+    ////////////////////////////////////////
+    // Shared
+    ////////////////////////////////////////
+
     // Synchronization objects
     {
         grfx::SemaphoreCreateInfo semaCreateInfo = {};
@@ -78,7 +82,7 @@ void OITDemoApp::SetupCommon()
 
     // Meshes
     {
-        grfx::QueuePtr queue = this->GetGraphicsQueue();
+        grfx::QueuePtr queue   = this->GetGraphicsQueue();
         TriMeshOptions options = TriMeshOptions().Indices();
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/cube.obj"), &mBackgroundMesh, options));
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/monkey.obj"), &mMonkeyMesh, options));
@@ -93,184 +97,187 @@ void OITDemoApp::SetupCommon()
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mShaderGlobalsBuffer));
     }
 
+    ////////////////////////////////////////
     // Opaque
+    ////////////////////////////////////////
+
+    // Pass
     {
-        // Pass
-        {
-            grfx::DrawPassCreateInfo createInfo     = {};
-            createInfo.width                        = GetSwapchain()->GetWidth();
-            createInfo.height                       = GetSwapchain()->GetHeight();
-            createInfo.renderTargetCount            = 1;
-            createInfo.renderTargetFormats[0]       = GetSwapchain()->GetColorFormat();
-            createInfo.depthStencilFormat           = grfx::FORMAT_D32_FLOAT;
-            createInfo.renderTargetUsageFlags[0]    = grfx::IMAGE_USAGE_SAMPLED;
-            createInfo.depthStencilUsageFlags       = grfx::IMAGE_USAGE_SAMPLED;
-            createInfo.renderTargetInitialStates[0] = grfx::RESOURCE_STATE_SHADER_RESOURCE;
-            createInfo.depthStencilInitialState     = grfx::RESOURCE_STATE_SHADER_RESOURCE;
-            createInfo.renderTargetClearValues[0]   = {0, 0, 0, 0};
-            createInfo.depthStencilClearValue       = {1.0f, 0xFF};
-            PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mOpaquePass));
-        }
-
-        // Descriptor
-        {
-            grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-            PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mOpaqueDescriptorSetLayout));
-
-            PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mOpaqueDescriptorSetLayout, &mOpaqueDescriptorSet));
-
-            grfx::WriteDescriptor write = {};
-            write.binding = SHADER_GLOBALS_REGISTER;
-            write.type = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            write.bufferOffset = 0;
-            write.bufferRange = PPX_WHOLE_SIZE;
-            write.pBuffer = mShaderGlobalsBuffer;
-            PPX_CHECKED_CALL(mOpaqueDescriptorSet->UpdateDescriptors(1, &write));
-        }
-
-        // Pipeline
-        {
-            grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-            piCreateInfo.setCount                          = 1;
-            piCreateInfo.sets[0].set                       = 0;
-            piCreateInfo.sets[0].pLayout                   = mOpaqueDescriptorSetLayout;
-            PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mOpaquePipelineInterface));
-
-            grfx::ShaderModulePtr VS, PS;
-            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Opaque.vs", &VS));
-            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Opaque.ps", &PS));
-
-            grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-            gpCreateInfo.VS                                 = {VS, "vsmain"};
-            gpCreateInfo.PS                                 = {PS, "psmain"};
-            gpCreateInfo.vertexInputState.bindingCount      = 1;
-            gpCreateInfo.vertexInputState.bindings[0]       = mBackgroundMesh->GetDerivedVertexBindings()[0];
-            gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-            gpCreateInfo.cullMode                           = grfx::CULL_MODE_FRONT;
-            gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-            gpCreateInfo.depthReadEnable                    = true;
-            gpCreateInfo.depthWriteEnable                   = true;
-            gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-            gpCreateInfo.outputState.renderTargetCount      = 1;
-            gpCreateInfo.outputState.renderTargetFormats[0] = mOpaquePass->GetRenderTargetTexture(0)->GetImageFormat();
-            gpCreateInfo.outputState.depthStencilFormat     = mOpaquePass->GetDepthStencilTexture()->GetImageFormat();
-            gpCreateInfo.pPipelineInterface                 = mOpaquePipelineInterface;
-            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mOpaquePipeline));
-
-            GetDevice()->DestroyShaderModule(VS);
-            GetDevice()->DestroyShaderModule(PS);
-        }
+        grfx::DrawPassCreateInfo createInfo     = {};
+        createInfo.width                        = GetSwapchain()->GetWidth();
+        createInfo.height                       = GetSwapchain()->GetHeight();
+        createInfo.renderTargetCount            = 1;
+        createInfo.renderTargetFormats[0]       = GetSwapchain()->GetColorFormat();
+        createInfo.depthStencilFormat           = grfx::FORMAT_D32_FLOAT;
+        createInfo.renderTargetUsageFlags[0]    = grfx::IMAGE_USAGE_SAMPLED;
+        createInfo.depthStencilUsageFlags       = grfx::IMAGE_USAGE_SAMPLED;
+        createInfo.renderTargetInitialStates[0] = grfx::RESOURCE_STATE_SHADER_RESOURCE;
+        createInfo.depthStencilInitialState     = grfx::RESOURCE_STATE_SHADER_RESOURCE;
+        createInfo.renderTargetClearValues[0]   = {0, 0, 0, 0};
+        createInfo.depthStencilClearValue       = {1.0f, 0xFF};
+        PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mOpaquePass));
     }
 
+    // Descriptor
+    {
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mOpaqueDescriptorSetLayout));
+
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mOpaqueDescriptorSetLayout, &mOpaqueDescriptorSet));
+
+        grfx::WriteDescriptor write = {};
+        write.binding               = SHADER_GLOBALS_REGISTER;
+        write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.bufferOffset          = 0;
+        write.bufferRange           = PPX_WHOLE_SIZE;
+        write.pBuffer               = mShaderGlobalsBuffer;
+        PPX_CHECKED_CALL(mOpaqueDescriptorSet->UpdateDescriptors(1, &write));
+    }
+
+    // Pipeline
+    {
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 1;
+        piCreateInfo.sets[0].set                       = 0;
+        piCreateInfo.sets[0].pLayout                   = mOpaqueDescriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mOpaquePipelineInterface));
+
+        grfx::ShaderModulePtr VS, PS;
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Opaque.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Opaque.ps", &PS));
+
+        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+        gpCreateInfo.VS                                 = {VS, "vsmain"};
+        gpCreateInfo.PS                                 = {PS, "psmain"};
+        gpCreateInfo.vertexInputState.bindingCount      = 1;
+        gpCreateInfo.vertexInputState.bindings[0]       = mBackgroundMesh->GetDerivedVertexBindings()[0];
+        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.cullMode                           = grfx::CULL_MODE_FRONT;
+        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+        gpCreateInfo.depthReadEnable                    = true;
+        gpCreateInfo.depthWriteEnable                   = true;
+        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+        gpCreateInfo.outputState.renderTargetCount      = 1;
+        gpCreateInfo.outputState.renderTargetFormats[0] = mOpaquePass->GetRenderTargetTexture(0)->GetImageFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = mOpaquePass->GetDepthStencilTexture()->GetImageFormat();
+        gpCreateInfo.pPipelineInterface                 = mOpaquePipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mOpaquePipeline));
+
+        GetDevice()->DestroyShaderModule(VS);
+        GetDevice()->DestroyShaderModule(PS);
+    }
+
+    ////////////////////////////////////////
     // Transparency
-    {
-        // Texture
-        {
-            grfx::TextureCreateInfo createInfo         = {};
-            createInfo.imageType                       = grfx::IMAGE_TYPE_2D;
-            createInfo.width                           = GetSwapchain()->GetWidth();
-            createInfo.height                          = GetSwapchain()->GetHeight();
-            createInfo.depth                           = 1;
-            createInfo.imageFormat                     = grfx::FORMAT_B8G8R8A8_UNORM;
-            createInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
-            createInfo.mipLevelCount                   = 1;
-            createInfo.arrayLayerCount                 = 1;
-            createInfo.usageFlags.bits.colorAttachment = true;
-            createInfo.usageFlags.bits.sampled         = true;
-            createInfo.memoryUsage                     = grfx::MEMORY_USAGE_GPU_ONLY;
-            createInfo.initialState                    = grfx::RESOURCE_STATE_SHADER_RESOURCE;
-            createInfo.RTVClearValue                   = {0, 0, 0, 0};
-            createInfo.DSVClearValue                   = {1.0f, 0xFF};
-            PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mTransparencyTexture));
-        }
+    ////////////////////////////////////////
 
-        // Pass
-        {
-            grfx::DrawPassCreateInfo2 createInfo       = {};
-            createInfo.width                           = GetSwapchain()->GetWidth();
-            createInfo.height                          = GetSwapchain()->GetHeight();
-            createInfo.renderTargetCount               = 1;
-            createInfo.pRenderTargetImages[0]          = mTransparencyTexture->GetImage();
-            createInfo.pDepthStencilImage              = mOpaquePass->GetDepthStencilTexture()->GetImage();
-            createInfo.depthStencilState               = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
-            createInfo.renderTargetClearValues[0]      = {0, 0, 0, 0};
-            createInfo.depthStencilClearValue          = {1.0f, 0xFF};
-            PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mTransparencyPass));
-        }
+    // Texture
+    {
+        grfx::TextureCreateInfo createInfo         = {};
+        createInfo.imageType                       = grfx::IMAGE_TYPE_2D;
+        createInfo.width                           = GetSwapchain()->GetWidth();
+        createInfo.height                          = GetSwapchain()->GetHeight();
+        createInfo.depth                           = 1;
+        createInfo.imageFormat                     = grfx::FORMAT_B8G8R8A8_UNORM;
+        createInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
+        createInfo.mipLevelCount                   = 1;
+        createInfo.arrayLayerCount                 = 1;
+        createInfo.usageFlags.bits.colorAttachment = true;
+        createInfo.usageFlags.bits.sampled         = true;
+        createInfo.memoryUsage                     = grfx::MEMORY_USAGE_GPU_ONLY;
+        createInfo.initialState                    = grfx::RESOURCE_STATE_SHADER_RESOURCE;
+        createInfo.RTVClearValue                   = {0, 0, 0, 0};
+        createInfo.DSVClearValue                   = {1.0f, 0xFF};
+        PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mTransparencyTexture));
     }
 
-    // Composite
+    // Pass
     {
-        // Sampler
-        {
-            grfx::SamplerCreateInfo createInfo = {};
-            createInfo.magFilter               = grfx::FILTER_NEAREST;
-            createInfo.minFilter               = grfx::FILTER_NEAREST;
-            PPX_CHECKED_CALL(GetDevice()->CreateSampler(&createInfo, &mNearestSampler));
-        }
+        grfx::DrawPassCreateInfo2 createInfo  = {};
+        createInfo.width                      = GetSwapchain()->GetWidth();
+        createInfo.height                     = GetSwapchain()->GetHeight();
+        createInfo.renderTargetCount          = 1;
+        createInfo.pRenderTargetImages[0]     = mTransparencyTexture->GetImage();
+        createInfo.pDepthStencilImage         = mOpaquePass->GetDepthStencilTexture()->GetImage();
+        createInfo.depthStencilState          = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
+        createInfo.renderTargetClearValues[0] = {0, 0, 0, 0};
+        createInfo.depthStencilClearValue     = {1.0f, 0xFF};
+        PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mTransparencyPass));
+    }
 
-        // Descriptor
-        {
-            grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{NEAREST_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{OPAQUE_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{TRANSPARENCY_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-            PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mCompositeDescriptorSetLayout));
-            PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mCompositeDescriptorSetLayout, &mCompositeDescriptorSet));
+    ////////////////////////////////////////
+    // Composite
+    ////////////////////////////////////////
 
-            grfx::WriteDescriptor writes[3] = {};
+    // Sampler
+    {
+        grfx::SamplerCreateInfo createInfo = {};
+        createInfo.magFilter               = grfx::FILTER_NEAREST;
+        createInfo.minFilter               = grfx::FILTER_NEAREST;
+        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&createInfo, &mNearestSampler));
+    }
 
-            writes[0].binding = NEAREST_SAMPLER_REGISTER;
-            writes[0].type = grfx::DESCRIPTOR_TYPE_SAMPLER;
-            writes[0].pSampler = mNearestSampler;
+    // Descriptor
+    {
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{NEAREST_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{OPAQUE_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{TRANSPARENCY_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mCompositeDescriptorSetLayout));
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mCompositeDescriptorSetLayout, &mCompositeDescriptorSet));
 
-            writes[1].binding = OPAQUE_TEXTURE_REGISTER;
-            writes[1].arrayIndex = 0;
-            writes[1].type = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            writes[1].pImageView = mOpaquePass->GetRenderTargetTexture(0)->GetSampledImageView();
+        grfx::WriteDescriptor writes[3] = {};
 
-            writes[2].binding = TRANSPARENCY_TEXTURE_REGISTER;
-            writes[2].arrayIndex = 0;
-            writes[2].type = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            writes[2].pImageView = mTransparencyTexture->GetSampledImageView();
+        writes[0].binding  = NEAREST_SAMPLER_REGISTER;
+        writes[0].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
+        writes[0].pSampler = mNearestSampler;
 
-            PPX_CHECKED_CALL(mCompositeDescriptorSet->UpdateDescriptors(3, writes));
-        }
+        writes[1].binding    = OPAQUE_TEXTURE_REGISTER;
+        writes[1].arrayIndex = 0;
+        writes[1].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        writes[1].pImageView = mOpaquePass->GetRenderTargetTexture(0)->GetSampledImageView();
 
-        // Pipeline
-        {
-            grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-            piCreateInfo.setCount                          = 1;
-            piCreateInfo.sets[0].set                       = 0;
-            piCreateInfo.sets[0].pLayout                   = mCompositeDescriptorSetLayout;
-            PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mCompositePipelineInterface));
+        writes[2].binding    = TRANSPARENCY_TEXTURE_REGISTER;
+        writes[2].arrayIndex = 0;
+        writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        writes[2].pImageView = mTransparencyTexture->GetSampledImageView();
 
-            grfx::ShaderModulePtr VS, PS;
-            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Composite.vs", &VS));
-            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Composite.ps", &PS));
+        PPX_CHECKED_CALL(mCompositeDescriptorSet->UpdateDescriptors(3, writes));
+    }
 
-            grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-            gpCreateInfo.VS                                 = {VS, "vsmain"};
-            gpCreateInfo.PS                                 = {PS, "psmain"};
-            gpCreateInfo.vertexInputState.bindingCount      = 0;
-            gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-            gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
-            gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-            gpCreateInfo.depthReadEnable                    = false;
-            gpCreateInfo.depthWriteEnable                   = false;
-            gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-            gpCreateInfo.outputState.renderTargetCount      = 1;
-            gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-            gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-            gpCreateInfo.pPipelineInterface                 = mCompositePipelineInterface;
-            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mCompositePipeline));
+    // Pipeline
+    {
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 1;
+        piCreateInfo.sets[0].set                       = 0;
+        piCreateInfo.sets[0].pLayout                   = mCompositeDescriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mCompositePipelineInterface));
 
-            GetDevice()->DestroyShaderModule(VS);
-            GetDevice()->DestroyShaderModule(PS);
-        }
+        grfx::ShaderModulePtr VS, PS;
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Composite.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "Composite.ps", &PS));
+
+        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+        gpCreateInfo.VS                                 = {VS, "vsmain"};
+        gpCreateInfo.PS                                 = {PS, "psmain"};
+        gpCreateInfo.vertexInputState.bindingCount      = 0;
+        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+        gpCreateInfo.depthReadEnable                    = false;
+        gpCreateInfo.depthWriteEnable                   = false;
+        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+        gpCreateInfo.outputState.renderTargetCount      = 1;
+        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+        gpCreateInfo.pPipelineInterface                 = mCompositePipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mCompositePipeline));
+
+        GetDevice()->DestroyShaderModule(VS);
+        GetDevice()->DestroyShaderModule(PS);
     }
 }
 
@@ -294,7 +301,7 @@ void OITDemoApp::Update()
 
         ShaderGlobals shaderGlobals = {};
         {
-            const float4x4 M = glm::scale(float3(3.0));
+            const float4x4 M            = glm::scale(float3(3.0));
             shaderGlobals.backgroundMVP = VP * M;
         }
         {
@@ -310,14 +317,13 @@ void OITDemoApp::Update()
     }
 
     // GUI
-    if(ImGui::Begin("Parameters"))
-    {
+    if (ImGui::Begin("Parameters")) {
         const char* algorithmChoices[] =
-        {
-            "Unsorted over",
-            "Weighted sum",
-			"New blended operator",
-        };
+            {
+                "Unsorted over",
+                "Weighted sum",
+                "New blended operator",
+            };
         static_assert(IM_ARRAYSIZE(algorithmChoices) == ALGORITHMS_COUNT, "Algorithm count mismatch");
         ImGui::Combo("Algorithm", reinterpret_cast<int32_t*>(&mGuiParameters.algorithm), algorithmChoices, IM_ARRAYSIZE(algorithmChoices));
 
@@ -326,23 +332,20 @@ void OITDemoApp::Update()
 
         ImGui::Separator();
 
-        switch(mGuiParameters.algorithm)
-        {
-            case ALGORITHM_UNSORTED_OVER:
-            {
+        switch (mGuiParameters.algorithm) {
+            case ALGORITHM_UNSORTED_OVER: {
                 const char* faceModeChoices[] =
-                {
-                    "All",
-                    "Back first, then front",
-                    "Back only",
-                    "Front only",
-                };
+                    {
+                        "All",
+                        "Back first, then front",
+                        "Back only",
+                        "Front only",
+                    };
                 static_assert(IM_ARRAYSIZE(faceModeChoices) == FACE_MODES_COUNT, "Face modes count mismatch");
                 ImGui::Combo("Face draw mode", reinterpret_cast<int32_t*>(&mGuiParameters.faceMode), faceModeChoices, IM_ARRAYSIZE(faceModeChoices));
                 break;
             }
-            default:
-            {
+            default: {
                 break;
             }
         }
@@ -354,15 +357,16 @@ void OITDemoApp::RecordOpaque()
 {
     mCommandBuffer->TransitionImageLayout(
         mOpaquePass,
-        grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET,
-        grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
+        grfx::RESOURCE_STATE_SHADER_RESOURCE,
+        grfx::RESOURCE_STATE_RENDER_TARGET,
+        grfx::RESOURCE_STATE_SHADER_RESOURCE,
+        grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
     mCommandBuffer->BeginRenderPass(mOpaquePass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_ALL);
 
     mCommandBuffer->SetScissors(mOpaquePass->GetScissor());
     mCommandBuffer->SetViewports(mOpaquePass->GetViewport());
 
-    if(mGuiParameters.displayBackground)
-    {
+    if (mGuiParameters.displayBackground) {
         mCommandBuffer->BindGraphicsDescriptorSets(mOpaquePipelineInterface, 1, &mOpaqueDescriptorSet);
         mCommandBuffer->BindGraphicsPipeline(mOpaquePipeline);
         mCommandBuffer->BindIndexBuffer(mBackgroundMesh);
@@ -373,14 +377,15 @@ void OITDemoApp::RecordOpaque()
     mCommandBuffer->EndRenderPass();
     mCommandBuffer->TransitionImageLayout(
         mOpaquePass,
-        grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_SHADER_RESOURCE,
-        grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+        grfx::RESOURCE_STATE_RENDER_TARGET,
+        grfx::RESOURCE_STATE_SHADER_RESOURCE,
+        grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE,
+        grfx::RESOURCE_STATE_SHADER_RESOURCE);
 }
 
 void OITDemoApp::RecordTransparency()
 {
-    switch(mGuiParameters.algorithm)
-    {
+    switch (mGuiParameters.algorithm) {
         case ALGORITHM_UNSORTED_OVER:
             RecordUnsortedOver();
             break;
@@ -401,8 +406,7 @@ void OITDemoApp::RecordComposite(grfx::RenderPassPtr renderPass)
     PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
 
     mCommandBuffer->TransitionImageLayout(
-        renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES,
-        grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
+        renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
 
     grfx::RenderPassBeginInfo beginInfo = {};
     beginInfo.pRenderPass               = renderPass;
@@ -420,11 +424,10 @@ void OITDemoApp::RecordComposite(grfx::RenderPassPtr renderPass)
     mCommandBuffer->Draw(3);
 
     DrawImGui(mCommandBuffer);
-    
+
     mCommandBuffer->EndRenderPass();
     mCommandBuffer->TransitionImageLayout(
-        renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES,
-        grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
+        renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
 }
 
 void OITDemoApp::Render()
@@ -456,4 +459,3 @@ void OITDemoApp::Render()
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
     PPX_CHECKED_CALL(GetSwapchain()->Present(imageIndex, 1, &mRenderCompleteSemaphore));
 }
-

@@ -17,6 +17,10 @@
 
 void OITDemoApp::SetupNewBlendedOperator()
 {
+    ////////////////////////////////////////
+    // Common
+    ////////////////////////////////////////
+
     // Texture
     {
         grfx::TextureCreateInfo createInfo         = {};
@@ -33,170 +37,172 @@ void OITDemoApp::SetupNewBlendedOperator()
         createInfo.initialState                    = grfx::RESOURCE_STATE_SHADER_RESOURCE;
         createInfo.DSVClearValue                   = {1.0f, 0xFF};
 
-        createInfo.imageFormat                     = grfx::FORMAT_B8G8R8A8_UNORM;
-        createInfo.RTVClearValue                   = {0, 0, 0, 0};
+        createInfo.imageFormat   = grfx::FORMAT_B8G8R8A8_UNORM;
+        createInfo.RTVClearValue = {0, 0, 0, 0};
         PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mNewBlendedOperator.colorTexture));
 
-        createInfo.imageFormat                     = grfx::FORMAT_R8_UNORM;
-        createInfo.RTVClearValue                   = {1, 1, 1, 1};
+        createInfo.imageFormat   = grfx::FORMAT_R8_UNORM;
+        createInfo.RTVClearValue = {1, 1, 1, 1};
         PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mNewBlendedOperator.coverageTexture));
     }
 
+    ////////////////////////////////////////
     // Gather
+    ////////////////////////////////////////
+
+    // Pass
     {
-        // Pass
-        {
-            grfx::DrawPassCreateInfo2 createInfo       = {};
-            createInfo.width                           = mNewBlendedOperator.colorTexture->GetWidth();
-            createInfo.height                          = mNewBlendedOperator.colorTexture->GetHeight();
-            createInfo.renderTargetCount               = 2;
-            createInfo.pRenderTargetImages[0]          = mNewBlendedOperator.colorTexture->GetImage();
-            createInfo.pRenderTargetImages[1]          = mNewBlendedOperator.coverageTexture->GetImage();
-            createInfo.pDepthStencilImage              = mOpaquePass->GetDepthStencilTexture()->GetImage();
-            createInfo.depthStencilState               = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
-            createInfo.renderTargetClearValues[0]      = {0, 0, 0, 0};
-            createInfo.renderTargetClearValues[1]      = {1, 1, 1, 1};
-            createInfo.depthStencilClearValue          = {1.0f, 0xFF};
-            PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mNewBlendedOperator.gatherPass));
-        }
-
-        // Descriptor
-        {
-            grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-            PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mNewBlendedOperator.gatherDescriptorSetLayout));
-
-            PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mNewBlendedOperator.gatherDescriptorSetLayout, &mNewBlendedOperator.gatherDescriptorSet));
-
-            grfx::WriteDescriptor write = {};
-            write.binding = SHADER_GLOBALS_REGISTER;
-            write.type = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            write.bufferOffset = 0;
-            write.bufferRange = PPX_WHOLE_SIZE;
-            write.pBuffer = mShaderGlobalsBuffer;
-            PPX_CHECKED_CALL(mNewBlendedOperator.gatherDescriptorSet->UpdateDescriptors(1, &write));
-        }
-
-        // Pipeline
-        {
-            grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-            piCreateInfo.setCount                          = 1;
-            piCreateInfo.sets[0].set                       = 0;
-            piCreateInfo.sets[0].pLayout                   = mNewBlendedOperator.gatherDescriptorSetLayout;
-            PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mNewBlendedOperator.gatherPipelineInterface));
-
-            grfx::ShaderModulePtr VS, PS;
-            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "NewBlendedOperatorGather.vs", &VS));
-            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "NewBlendedOperatorGather.ps", &PS));
-
-            grfx::GraphicsPipelineCreateInfo gpCreateInfo                        = {};
-            gpCreateInfo.VS                                                      = {VS, "vsmain"};
-            gpCreateInfo.PS                                                      = {PS, "psmain"};
-            gpCreateInfo.vertexInputState.bindingCount                           = 1;
-            gpCreateInfo.vertexInputState.bindings[0]                            = mMonkeyMesh->GetDerivedVertexBindings()[0];
-            gpCreateInfo.inputAssemblyState.topology                             = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            gpCreateInfo.rasterState.polygonMode                                 = grfx::POLYGON_MODE_FILL;
-            gpCreateInfo.rasterState.cullMode                                    = grfx::CULL_MODE_NONE;
-            gpCreateInfo.rasterState.frontFace                                   = grfx::FRONT_FACE_CCW;
-            gpCreateInfo.rasterState.rasterizationSamples                        = grfx::SAMPLE_COUNT_1;
-            gpCreateInfo.depthStencilState.depthTestEnable                       = true;
-            gpCreateInfo.depthStencilState.depthWriteEnable                      = false;
-
-            gpCreateInfo.colorBlendState.blendAttachmentCount                    = 2;
-
-            gpCreateInfo.colorBlendState.blendAttachments[0].blendEnable         = true;
-            gpCreateInfo.colorBlendState.blendAttachments[0].srcColorBlendFactor = grfx::BLEND_FACTOR_ONE;
-            gpCreateInfo.colorBlendState.blendAttachments[0].dstColorBlendFactor = grfx::BLEND_FACTOR_ONE;
-            gpCreateInfo.colorBlendState.blendAttachments[0].colorBlendOp        = grfx::BLEND_OP_ADD;
-            gpCreateInfo.colorBlendState.blendAttachments[0].srcAlphaBlendFactor = grfx::BLEND_FACTOR_ONE;
-            gpCreateInfo.colorBlendState.blendAttachments[0].dstAlphaBlendFactor = grfx::BLEND_FACTOR_ONE;
-            gpCreateInfo.colorBlendState.blendAttachments[0].alphaBlendOp        = grfx::BLEND_OP_ADD;
-            gpCreateInfo.colorBlendState.blendAttachments[0].colorWriteMask      = grfx::ColorComponentFlags::RGBA();
-
-            gpCreateInfo.colorBlendState.blendAttachments[1].blendEnable         = true;
-            gpCreateInfo.colorBlendState.blendAttachments[1].srcColorBlendFactor = grfx::BLEND_FACTOR_ZERO;
-            gpCreateInfo.colorBlendState.blendAttachments[1].dstColorBlendFactor = grfx::BLEND_FACTOR_SRC_COLOR;
-            gpCreateInfo.colorBlendState.blendAttachments[1].colorBlendOp        = grfx::BLEND_OP_ADD;
-            gpCreateInfo.colorBlendState.blendAttachments[1].srcAlphaBlendFactor = grfx::BLEND_FACTOR_ZERO;
-            gpCreateInfo.colorBlendState.blendAttachments[1].dstAlphaBlendFactor = grfx::BLEND_FACTOR_ZERO;
-            gpCreateInfo.colorBlendState.blendAttachments[1].alphaBlendOp        = grfx::BLEND_OP_ADD;
-            gpCreateInfo.colorBlendState.blendAttachments[1].colorWriteMask      = grfx::ColorComponentFlags::RGBA();
-
-            gpCreateInfo.outputState.renderTargetCount                           = 2;
-            gpCreateInfo.outputState.renderTargetFormats[0]                      = mNewBlendedOperator.colorTexture->GetImageFormat();
-            gpCreateInfo.outputState.renderTargetFormats[1]                      = mNewBlendedOperator.coverageTexture->GetImageFormat();
-            gpCreateInfo.outputState.depthStencilFormat                          = mOpaquePass->GetDepthStencilTexture()->GetImageFormat();
-            gpCreateInfo.pPipelineInterface                                      = mNewBlendedOperator.gatherPipelineInterface;
-            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mNewBlendedOperator.gatherPipeline));
-
-            GetDevice()->DestroyShaderModule(VS);
-            GetDevice()->DestroyShaderModule(PS);
-        }
+        grfx::DrawPassCreateInfo2 createInfo  = {};
+        createInfo.width                      = mNewBlendedOperator.colorTexture->GetWidth();
+        createInfo.height                     = mNewBlendedOperator.colorTexture->GetHeight();
+        createInfo.renderTargetCount          = 2;
+        createInfo.pRenderTargetImages[0]     = mNewBlendedOperator.colorTexture->GetImage();
+        createInfo.pRenderTargetImages[1]     = mNewBlendedOperator.coverageTexture->GetImage();
+        createInfo.pDepthStencilImage         = mOpaquePass->GetDepthStencilTexture()->GetImage();
+        createInfo.depthStencilState          = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
+        createInfo.renderTargetClearValues[0] = {0, 0, 0, 0};
+        createInfo.renderTargetClearValues[1] = {1, 1, 1, 1};
+        createInfo.depthStencilClearValue     = {1.0f, 0xFF};
+        PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mNewBlendedOperator.gatherPass));
     }
 
-    // Combine
+    // Descriptor
     {
-        // Descriptor
-        {
-            grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{NEAREST_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_1_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-            PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mNewBlendedOperator.combineDescriptorSetLayout));
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mNewBlendedOperator.gatherDescriptorSetLayout));
 
-            PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mNewBlendedOperator.combineDescriptorSetLayout, &mNewBlendedOperator.combineDescriptorSet));
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mNewBlendedOperator.gatherDescriptorSetLayout, &mNewBlendedOperator.gatherDescriptorSet));
 
-            grfx::WriteDescriptor writes[3] = {};
+        grfx::WriteDescriptor write = {};
+        write.binding               = SHADER_GLOBALS_REGISTER;
+        write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.bufferOffset          = 0;
+        write.bufferRange           = PPX_WHOLE_SIZE;
+        write.pBuffer               = mShaderGlobalsBuffer;
+        PPX_CHECKED_CALL(mNewBlendedOperator.gatherDescriptorSet->UpdateDescriptors(1, &write));
+    }
 
-            writes[0].binding = NEAREST_SAMPLER_REGISTER;
-            writes[0].type = grfx::DESCRIPTOR_TYPE_SAMPLER;
-            writes[0].pSampler = mNearestSampler;
+    // Pipeline
+    {
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 1;
+        piCreateInfo.sets[0].set                       = 0;
+        piCreateInfo.sets[0].pLayout                   = mNewBlendedOperator.gatherDescriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mNewBlendedOperator.gatherPipelineInterface));
 
-            writes[1].binding = CUSTOM_TEXTURE_0_REGISTER;
-            writes[1].arrayIndex = 0;
-            writes[1].type = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            writes[1].pImageView = mNewBlendedOperator.colorTexture->GetSampledImageView();
+        grfx::ShaderModulePtr VS, PS;
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "NewBlendedOperatorGather.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "NewBlendedOperatorGather.ps", &PS));
 
-            writes[2].binding = CUSTOM_TEXTURE_1_REGISTER;
-            writes[2].arrayIndex = 0;
-            writes[2].type = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            writes[2].pImageView = mNewBlendedOperator.coverageTexture->GetSampledImageView();
+        grfx::GraphicsPipelineCreateInfo gpCreateInfo   = {};
+        gpCreateInfo.VS                                 = {VS, "vsmain"};
+        gpCreateInfo.PS                                 = {PS, "psmain"};
+        gpCreateInfo.vertexInputState.bindingCount      = 1;
+        gpCreateInfo.vertexInputState.bindings[0]       = mMonkeyMesh->GetDerivedVertexBindings()[0];
+        gpCreateInfo.inputAssemblyState.topology        = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        gpCreateInfo.rasterState.polygonMode            = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.rasterState.cullMode               = grfx::CULL_MODE_NONE;
+        gpCreateInfo.rasterState.frontFace              = grfx::FRONT_FACE_CCW;
+        gpCreateInfo.rasterState.rasterizationSamples   = grfx::SAMPLE_COUNT_1;
+        gpCreateInfo.depthStencilState.depthTestEnable  = true;
+        gpCreateInfo.depthStencilState.depthWriteEnable = false;
 
-            PPX_CHECKED_CALL(mNewBlendedOperator.combineDescriptorSet->UpdateDescriptors(3, writes));
-        }
+        gpCreateInfo.colorBlendState.blendAttachmentCount = 2;
 
-		// Pipeline
-		{
-            grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-            piCreateInfo.setCount                          = 1;
-            piCreateInfo.sets[0].set                       = 0;
-            piCreateInfo.sets[0].pLayout                   = mNewBlendedOperator.combineDescriptorSetLayout;
-            PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mNewBlendedOperator.combinePipelineInterface));
+        gpCreateInfo.colorBlendState.blendAttachments[0].blendEnable         = true;
+        gpCreateInfo.colorBlendState.blendAttachments[0].srcColorBlendFactor = grfx::BLEND_FACTOR_ONE;
+        gpCreateInfo.colorBlendState.blendAttachments[0].dstColorBlendFactor = grfx::BLEND_FACTOR_ONE;
+        gpCreateInfo.colorBlendState.blendAttachments[0].colorBlendOp        = grfx::BLEND_OP_ADD;
+        gpCreateInfo.colorBlendState.blendAttachments[0].srcAlphaBlendFactor = grfx::BLEND_FACTOR_ONE;
+        gpCreateInfo.colorBlendState.blendAttachments[0].dstAlphaBlendFactor = grfx::BLEND_FACTOR_ONE;
+        gpCreateInfo.colorBlendState.blendAttachments[0].alphaBlendOp        = grfx::BLEND_OP_ADD;
+        gpCreateInfo.colorBlendState.blendAttachments[0].colorWriteMask      = grfx::ColorComponentFlags::RGBA();
 
-            grfx::ShaderModulePtr VS, PS;
-            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "NewBlendedOperatorCombine.vs", &VS));
-            PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "NewBlendedOperatorCombine.ps", &PS));
+        gpCreateInfo.colorBlendState.blendAttachments[1].blendEnable         = true;
+        gpCreateInfo.colorBlendState.blendAttachments[1].srcColorBlendFactor = grfx::BLEND_FACTOR_ZERO;
+        gpCreateInfo.colorBlendState.blendAttachments[1].dstColorBlendFactor = grfx::BLEND_FACTOR_SRC_COLOR;
+        gpCreateInfo.colorBlendState.blendAttachments[1].colorBlendOp        = grfx::BLEND_OP_ADD;
+        gpCreateInfo.colorBlendState.blendAttachments[1].srcAlphaBlendFactor = grfx::BLEND_FACTOR_ZERO;
+        gpCreateInfo.colorBlendState.blendAttachments[1].dstAlphaBlendFactor = grfx::BLEND_FACTOR_ZERO;
+        gpCreateInfo.colorBlendState.blendAttachments[1].alphaBlendOp        = grfx::BLEND_OP_ADD;
+        gpCreateInfo.colorBlendState.blendAttachments[1].colorWriteMask      = grfx::ColorComponentFlags::RGBA();
 
-            grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-            gpCreateInfo.VS                                 = {VS, "vsmain"};
-            gpCreateInfo.PS                                 = {PS, "psmain"};
-            gpCreateInfo.vertexInputState.bindingCount      = 0;
-            gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-            gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
-            gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-            gpCreateInfo.depthReadEnable                    = false;
-            gpCreateInfo.depthWriteEnable                   = false;
-            gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-            gpCreateInfo.outputState.renderTargetCount      = 1;
-            gpCreateInfo.outputState.renderTargetFormats[0] = mTransparencyTexture->GetImageFormat();
-            gpCreateInfo.outputState.depthStencilFormat     = mOpaquePass->GetDepthStencilTexture()->GetImageFormat();
-            gpCreateInfo.pPipelineInterface                 = mNewBlendedOperator.combinePipelineInterface;
-            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mNewBlendedOperator.combinePipeline));
+        gpCreateInfo.outputState.renderTargetCount      = 2;
+        gpCreateInfo.outputState.renderTargetFormats[0] = mNewBlendedOperator.colorTexture->GetImageFormat();
+        gpCreateInfo.outputState.renderTargetFormats[1] = mNewBlendedOperator.coverageTexture->GetImageFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = mOpaquePass->GetDepthStencilTexture()->GetImageFormat();
+        gpCreateInfo.pPipelineInterface                 = mNewBlendedOperator.gatherPipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mNewBlendedOperator.gatherPipeline));
 
-            GetDevice()->DestroyShaderModule(VS);
-            GetDevice()->DestroyShaderModule(PS);
-		}
+        GetDevice()->DestroyShaderModule(VS);
+        GetDevice()->DestroyShaderModule(PS);
+    }
+
+    ////////////////////////////////////////
+    // Combine
+    ////////////////////////////////////////
+
+    // Descriptor
+    {
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{NEAREST_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_1_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mNewBlendedOperator.combineDescriptorSetLayout));
+
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mNewBlendedOperator.combineDescriptorSetLayout, &mNewBlendedOperator.combineDescriptorSet));
+
+        grfx::WriteDescriptor writes[3] = {};
+
+        writes[0].binding  = NEAREST_SAMPLER_REGISTER;
+        writes[0].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
+        writes[0].pSampler = mNearestSampler;
+
+        writes[1].binding    = CUSTOM_TEXTURE_0_REGISTER;
+        writes[1].arrayIndex = 0;
+        writes[1].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        writes[1].pImageView = mNewBlendedOperator.colorTexture->GetSampledImageView();
+
+        writes[2].binding    = CUSTOM_TEXTURE_1_REGISTER;
+        writes[2].arrayIndex = 0;
+        writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        writes[2].pImageView = mNewBlendedOperator.coverageTexture->GetSampledImageView();
+
+        PPX_CHECKED_CALL(mNewBlendedOperator.combineDescriptorSet->UpdateDescriptors(3, writes));
+    }
+
+    // Pipeline
+    {
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 1;
+        piCreateInfo.sets[0].set                       = 0;
+        piCreateInfo.sets[0].pLayout                   = mNewBlendedOperator.combineDescriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mNewBlendedOperator.combinePipelineInterface));
+
+        grfx::ShaderModulePtr VS, PS;
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "NewBlendedOperatorCombine.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "NewBlendedOperatorCombine.ps", &PS));
+
+        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+        gpCreateInfo.VS                                 = {VS, "vsmain"};
+        gpCreateInfo.PS                                 = {PS, "psmain"};
+        gpCreateInfo.vertexInputState.bindingCount      = 0;
+        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+        gpCreateInfo.depthReadEnable                    = false;
+        gpCreateInfo.depthWriteEnable                   = false;
+        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+        gpCreateInfo.outputState.renderTargetCount      = 1;
+        gpCreateInfo.outputState.renderTargetFormats[0] = mTransparencyTexture->GetImageFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = mOpaquePass->GetDepthStencilTexture()->GetImageFormat();
+        gpCreateInfo.pPipelineInterface                 = mNewBlendedOperator.combinePipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mNewBlendedOperator.combinePipeline));
+
+        GetDevice()->DestroyShaderModule(VS);
+        GetDevice()->DestroyShaderModule(PS);
     }
 }
 
@@ -206,8 +212,10 @@ void OITDemoApp::RecordNewBlendedOperator()
     {
         mCommandBuffer->TransitionImageLayout(
             mNewBlendedOperator.gatherPass,
-            grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET,
-            grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
+            grfx::RESOURCE_STATE_SHADER_RESOURCE,
+            grfx::RESOURCE_STATE_RENDER_TARGET,
+            grfx::RESOURCE_STATE_SHADER_RESOURCE,
+            grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
         mCommandBuffer->BeginRenderPass(mNewBlendedOperator.gatherPass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_RENDER_TARGETS);
 
         mCommandBuffer->SetScissors(mTransparencyPass->GetScissor());
@@ -222,16 +230,20 @@ void OITDemoApp::RecordNewBlendedOperator()
         mCommandBuffer->EndRenderPass();
         mCommandBuffer->TransitionImageLayout(
             mNewBlendedOperator.gatherPass,
-            grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_SHADER_RESOURCE,
-            grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+            grfx::RESOURCE_STATE_RENDER_TARGET,
+            grfx::RESOURCE_STATE_SHADER_RESOURCE,
+            grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE,
+            grfx::RESOURCE_STATE_SHADER_RESOURCE);
     }
 
     // Transparency pass: combine the results for each pixels
     {
         mCommandBuffer->TransitionImageLayout(
             mTransparencyPass,
-            grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET,
-            grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
+            grfx::RESOURCE_STATE_SHADER_RESOURCE,
+            grfx::RESOURCE_STATE_RENDER_TARGET,
+            grfx::RESOURCE_STATE_SHADER_RESOURCE,
+            grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
         mCommandBuffer->BeginRenderPass(mTransparencyPass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_RENDER_TARGETS);
 
         mCommandBuffer->SetScissors(mTransparencyPass->GetScissor());
@@ -244,8 +256,9 @@ void OITDemoApp::RecordNewBlendedOperator()
         mCommandBuffer->EndRenderPass();
         mCommandBuffer->TransitionImageLayout(
             mTransparencyPass,
-            grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_SHADER_RESOURCE,
-            grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+            grfx::RESOURCE_STATE_RENDER_TARGET,
+            grfx::RESOURCE_STATE_SHADER_RESOURCE,
+            grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE,
+            grfx::RESOURCE_STATE_SHADER_RESOURCE);
     }
 }
-

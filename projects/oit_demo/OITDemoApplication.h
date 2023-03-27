@@ -45,17 +45,14 @@ private:
     struct GuiParameters
     {
         GuiParameters()
-        : meshOpacity(1.0f)
-        , algorithm(ALGORITHM_UNSORTED_OVER)
-        , faceMode(FACE_MODE_ALL)
-        , displayBackground(true)
+            : meshOpacity(1.0f), algorithm(ALGORITHM_UNSORTED_OVER), faceMode(FACE_MODE_ALL), displayBackground(true)
         {
         }
 
-        float meshOpacity;
+        float     meshOpacity;
         Algorithm algorithm;
-        FaceMode faceMode;
-        bool displayBackground;
+        FaceMode  faceMode;
+        bool      displayBackground;
     };
 
 private:
@@ -74,21 +71,21 @@ private:
     void RecordComposite(grfx::RenderPassPtr renderPass);
 
 private:
-    GuiParameters                mGuiParameters;
+    GuiParameters mGuiParameters;
 
-    grfx::SemaphorePtr           mImageAcquiredSemaphore;
-    grfx::FencePtr               mImageAcquiredFence;
-    grfx::SemaphorePtr           mRenderCompleteSemaphore;
-    grfx::FencePtr               mRenderCompleteFence;
+    grfx::SemaphorePtr mImageAcquiredSemaphore;
+    grfx::FencePtr     mImageAcquiredFence;
+    grfx::SemaphorePtr mRenderCompleteSemaphore;
+    grfx::FencePtr     mRenderCompleteFence;
 
-    grfx::CommandBufferPtr       mCommandBuffer;
-    grfx::DescriptorPoolPtr      mDescriptorPool;
+    grfx::CommandBufferPtr  mCommandBuffer;
+    grfx::DescriptorPoolPtr mDescriptorPool;
 
-    grfx::MeshPtr                mBackgroundMesh;
-    grfx::MeshPtr                mMonkeyMesh;
+    grfx::MeshPtr mBackgroundMesh;
+    grfx::MeshPtr mMonkeyMesh;
 
-    grfx::BufferPtr              mShaderGlobalsBuffer;
-    grfx::SamplerPtr             mNearestSampler;
+    grfx::BufferPtr  mShaderGlobalsBuffer;
+    grfx::SamplerPtr mNearestSampler;
 
     grfx::DrawPassPtr            mOpaquePass;
     grfx::DescriptorSetLayoutPtr mOpaqueDescriptorSetLayout;
@@ -96,8 +93,8 @@ private:
     grfx::PipelineInterfacePtr   mOpaquePipelineInterface;
     grfx::GraphicsPipelinePtr    mOpaquePipeline;
 
-    grfx::TexturePtr             mTransparencyTexture;
-    grfx::DrawPassPtr            mTransparencyPass;
+    grfx::TexturePtr  mTransparencyTexture;
+    grfx::DrawPassPtr mTransparencyPass;
 
     grfx::DescriptorSetLayoutPtr mCompositeDescriptorSetLayout;
     grfx::DescriptorSetPtr       mCompositeDescriptorSet;
@@ -109,10 +106,10 @@ private:
         grfx::DescriptorSetLayoutPtr descriptorSetLayout;
         grfx::DescriptorSetPtr       descriptorSet;
 
-        grfx::PipelineInterfacePtr   pipelineInterface;
-        grfx::GraphicsPipelinePtr    meshAllFacesPipeline;
-        grfx::GraphicsPipelinePtr    meshBackFacesPipeline;
-        grfx::GraphicsPipelinePtr    meshFrontFacesPipeline;
+        grfx::PipelineInterfacePtr pipelineInterface;
+        grfx::GraphicsPipelinePtr  meshAllFacesPipeline;
+        grfx::GraphicsPipelinePtr  meshBackFacesPipeline;
+        grfx::GraphicsPipelinePtr  meshFrontFacesPipeline;
     } mUnsortedOver;
 
     struct
@@ -120,15 +117,15 @@ private:
         grfx::DescriptorSetLayoutPtr descriptorSetLayout;
         grfx::DescriptorSetPtr       descriptorSet;
 
-        grfx::PipelineInterfacePtr   pipelineInterface;
-        grfx::GraphicsPipelinePtr    pipeline;
+        grfx::PipelineInterfacePtr pipelineInterface;
+        grfx::GraphicsPipelinePtr  pipeline;
     } mWeightedSum;
 
     struct
     {
-        grfx::TexturePtr             colorTexture;
-        grfx::TexturePtr             coverageTexture;
-        grfx::DrawPassPtr            gatherPass;
+        grfx::TexturePtr  colorTexture;
+        grfx::TexturePtr  coverageTexture;
+        grfx::DrawPassPtr gatherPass;
 
         grfx::DescriptorSetLayoutPtr gatherDescriptorSetLayout;
         grfx::DescriptorSetPtr       gatherDescriptorSet;
@@ -141,4 +138,3 @@ private:
         grfx::GraphicsPipelinePtr    combinePipeline;
     } mNewBlendedOperator;
 };
-

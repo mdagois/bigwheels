@@ -26,11 +26,11 @@ void OITDemoApp::SetupWeightedSum()
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mWeightedSum.descriptorSetLayout, &mWeightedSum.descriptorSet));
 
         grfx::WriteDescriptor write = {};
-        write.binding = SHADER_GLOBALS_REGISTER;
-        write.type = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.bufferOffset = 0;
-        write.bufferRange = PPX_WHOLE_SIZE;
-        write.pBuffer = mShaderGlobalsBuffer;
+        write.binding               = SHADER_GLOBALS_REGISTER;
+        write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.bufferOffset          = 0;
+        write.bufferRange           = PPX_WHOLE_SIZE;
+        write.pBuffer               = mShaderGlobalsBuffer;
         PPX_CHECKED_CALL(mWeightedSum.descriptorSet->UpdateDescriptors(1, &write));
     }
 
@@ -82,8 +82,10 @@ void OITDemoApp::RecordWeightedSum()
 {
     mCommandBuffer->TransitionImageLayout(
         mTransparencyPass,
-        grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET,
-        grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
+        grfx::RESOURCE_STATE_SHADER_RESOURCE,
+        grfx::RESOURCE_STATE_RENDER_TARGET,
+        grfx::RESOURCE_STATE_SHADER_RESOURCE,
+        grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
     mCommandBuffer->BeginRenderPass(mTransparencyPass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_RENDER_TARGETS);
 
     mCommandBuffer->SetScissors(mTransparencyPass->GetScissor());
@@ -98,7 +100,8 @@ void OITDemoApp::RecordWeightedSum()
     mCommandBuffer->EndRenderPass();
     mCommandBuffer->TransitionImageLayout(
         mTransparencyPass,
-        grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_SHADER_RESOURCE,
-        grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+        grfx::RESOURCE_STATE_RENDER_TARGET,
+        grfx::RESOURCE_STATE_SHADER_RESOURCE,
+        grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE,
+        grfx::RESOURCE_STATE_SHADER_RESOURCE);
 }
-

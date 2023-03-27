@@ -26,11 +26,11 @@ void OITDemoApp::SetupUnsortedOver()
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mUnsortedOver.descriptorSetLayout, &mUnsortedOver.descriptorSet));
 
         grfx::WriteDescriptor write = {};
-        write.binding = SHADER_GLOBALS_REGISTER;
-        write.type = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.bufferOffset = 0;
-        write.bufferRange = PPX_WHOLE_SIZE;
-        write.pBuffer = mShaderGlobalsBuffer;
+        write.binding               = SHADER_GLOBALS_REGISTER;
+        write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.bufferOffset          = 0;
+        write.bufferRange           = PPX_WHOLE_SIZE;
+        write.pBuffer               = mShaderGlobalsBuffer;
         PPX_CHECKED_CALL(mUnsortedOver.descriptorSet->UpdateDescriptors(1, &write));
     }
 
@@ -89,8 +89,10 @@ void OITDemoApp::RecordUnsortedOver()
 {
     mCommandBuffer->TransitionImageLayout(
         mTransparencyPass,
-        grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET,
-        grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
+        grfx::RESOURCE_STATE_SHADER_RESOURCE,
+        grfx::RESOURCE_STATE_RENDER_TARGET,
+        grfx::RESOURCE_STATE_SHADER_RESOURCE,
+        grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
     mCommandBuffer->BeginRenderPass(mTransparencyPass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_RENDER_TARGETS);
 
     mCommandBuffer->SetScissors(mTransparencyPass->GetScissor());
@@ -99,36 +101,30 @@ void OITDemoApp::RecordUnsortedOver()
     mCommandBuffer->BindGraphicsDescriptorSets(mUnsortedOver.pipelineInterface, 1, &mUnsortedOver.descriptorSet);
     mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
     mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
-    switch(mGuiParameters.faceMode)
-    {
-        case FACE_MODE_ALL:
-        {
+    switch (mGuiParameters.faceMode) {
+        case FACE_MODE_ALL: {
             mCommandBuffer->BindGraphicsPipeline(mUnsortedOver.meshAllFacesPipeline);
             mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
             break;
         }
-        case FACE_MODE_ALL_BACK_THEN_FRONT:
-        {
+        case FACE_MODE_ALL_BACK_THEN_FRONT: {
             mCommandBuffer->BindGraphicsPipeline(mUnsortedOver.meshBackFacesPipeline);
             mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
             mCommandBuffer->BindGraphicsPipeline(mUnsortedOver.meshFrontFacesPipeline);
             mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
             break;
         }
-        case FACE_MODE_BACK_ONLY:
-        {
+        case FACE_MODE_BACK_ONLY: {
             mCommandBuffer->BindGraphicsPipeline(mUnsortedOver.meshBackFacesPipeline);
             mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
             break;
         }
-        case FACE_MODE_FRONT_ONLY:
-        {
+        case FACE_MODE_FRONT_ONLY: {
             mCommandBuffer->BindGraphicsPipeline(mUnsortedOver.meshFrontFacesPipeline);
             mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
             break;
         }
-        default:
-        {
+        default: {
             PPX_ASSERT_MSG(false, "unknown face mode");
             break;
         }
@@ -137,7 +133,8 @@ void OITDemoApp::RecordUnsortedOver()
     mCommandBuffer->EndRenderPass();
     mCommandBuffer->TransitionImageLayout(
         mTransparencyPass,
-        grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_SHADER_RESOURCE,
-        grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+        grfx::RESOURCE_STATE_RENDER_TARGET,
+        grfx::RESOURCE_STATE_SHADER_RESOURCE,
+        grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE,
+        grfx::RESOURCE_STATE_SHADER_RESOURCE);
 }
-

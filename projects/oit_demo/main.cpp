@@ -17,7 +17,6 @@
 int main(int argc, char** argv)
 {
     OITDemoApp app;
-    const int res = app.Run(argc, argv);
+    const int  res = app.Run(argc, argv);
     return res;
 }
-
