@@ -31,4 +31,3 @@ float4 psmain(VSOutput input) : SV_TARGET
 {
     return (float4)1.0f;
 }
-

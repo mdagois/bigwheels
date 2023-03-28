@@ -13,42 +13,41 @@
 // limitations under the License.
 
 #if defined(IS_SHADER)
-# define SHADER_REGISTER(type, num) type##num
+#define SHADER_REGISTER(type, num) type##num
 #else
-# define SHADER_REGISTER(type, num) num
+#define SHADER_REGISTER(type, num) num
 #endif
 
-#define SHADER_GLOBALS_REGISTER         SHADER_REGISTER(b, 0)
-#define NEAREST_SAMPLER_REGISTER        SHADER_REGISTER(s, 1)
-#define OPAQUE_TEXTURE_REGISTER         SHADER_REGISTER(t, 2)
-#define TRANSPARENCY_TEXTURE_REGISTER   SHADER_REGISTER(t, 3)
+#define SHADER_GLOBALS_REGISTER       SHADER_REGISTER(b, 0)
+#define NEAREST_SAMPLER_REGISTER      SHADER_REGISTER(s, 1)
+#define OPAQUE_TEXTURE_REGISTER       SHADER_REGISTER(t, 2)
+#define TRANSPARENCY_TEXTURE_REGISTER SHADER_REGISTER(t, 3)
 
-#define CUSTOM_TEXTURE_0_REGISTER		SHADER_REGISTER(t, 4)
-#define CUSTOM_TEXTURE_1_REGISTER		SHADER_REGISTER(t, 5)
+#define CUSTOM_TEXTURE_0_REGISTER SHADER_REGISTER(t, 4)
+#define CUSTOM_TEXTURE_1_REGISTER SHADER_REGISTER(t, 5)
 
-#define EPSILON                         0.0001f
+#define EPSILON 0.0001f
 
 struct ShaderGlobals
 {
     float4x4 backgroundMVP;
     float4x4 meshMVP;
-    float meshOpacity;
+    float    meshOpacity;
 };
 
 #if defined(IS_SHADER)
 
-# if defined(PPX_D3D11)
-#  define DECLARE_CONSTANT_BUFFER(type, name, reg) \
-    cbuffer type : register(reg)\
-    {\
-        type name;\
+#if defined(PPX_D3D11)
+#define DECLARE_CONSTANT_BUFFER(type, name, reg) \
+    cbuffer type : register(reg)                 \
+    {                                            \
+        type name;                               \
     };
-# else
-#  define DECLARE_CONSTANT_BUFFER(type, name, reg) \
+#else
+#define DECLARE_CONSTANT_BUFFER(type, name, reg) \
     ConstantBuffer<type> name : register(reg);
-# endif
+#endif
 
 DECLARE_CONSTANT_BUFFER(ShaderGlobals, g_Globals, SHADER_GLOBALS_REGISTER);
 
 #endif
-

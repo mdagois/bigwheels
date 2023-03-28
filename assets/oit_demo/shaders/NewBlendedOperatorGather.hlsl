@@ -25,8 +25,7 @@ struct PSOutput
 PSOutput psmain(VSOutput input)
 {
     PSOutput output = (PSOutput)0;
-    output.color = float4(input.color * g_Globals.meshOpacity, g_Globals.meshOpacity);
+    output.color    = float4(input.color * g_Globals.meshOpacity, g_Globals.meshOpacity);
     output.coverage = (1.0f - g_Globals.meshOpacity);
     return output;
 }
-
