@@ -180,7 +180,7 @@ void OITDemoApp::SetupCommon()
         createInfo.width                           = GetSwapchain()->GetWidth();
         createInfo.height                          = GetSwapchain()->GetHeight();
         createInfo.depth                           = 1;
-        createInfo.imageFormat                     = grfx::FORMAT_B8G8R8A8_UNORM;
+        createInfo.imageFormat                     = grfx::FORMAT_R16G16B16A16_FLOAT;
         createInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
         createInfo.mipLevelCount                   = 1;
         createInfo.arrayLayerCount                 = 1;

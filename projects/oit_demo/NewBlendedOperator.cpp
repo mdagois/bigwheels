@@ -37,7 +37,7 @@ void OITDemoApp::SetupNewBlendedOperator()
         createInfo.initialState                    = grfx::RESOURCE_STATE_SHADER_RESOURCE;
         createInfo.DSVClearValue                   = {1.0f, 0xFF};
 
-        createInfo.imageFormat   = grfx::FORMAT_B8G8R8A8_UNORM;
+        createInfo.imageFormat   = grfx::FORMAT_R16G16B16A16_FLOAT;
         createInfo.RTVClearValue = {0, 0, 0, 0};
         PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mNewBlendedOperator.colorTexture));
 
