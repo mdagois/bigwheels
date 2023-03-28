@@ -22,12 +22,13 @@ Texture2D	 CoverageTexture : register(CUSTOM_TEXTURE_1_REGISTER);
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-	const float4 color = ColorTexture.Sample(NearestSampler, input.uv);
-	const float3 colorSum = color.rgb;
-	const float alphaSum = color.a;
+	const float4 colorInfo = ColorTexture.Sample(NearestSampler, input.uv);
+	const float3 colorSum = colorInfo.rgb;
+	const float alphaSum = max(colorInfo.a, EPSILON);
+    const float3 averageColor = colorSum / alphaSum;
 
-	const float coverageProduct = CoverageTexture.Sample(NearestSampler, input.uv).r;
+	const float coverage = 1.0f - CoverageTexture.Sample(NearestSampler, input.uv).r;
 
-	return float4(colorSum / alphaSum, (1.0f - coverageProduct));
+	return float4(averageColor * coverage, coverage);
 }
 

@@ -26,6 +26,8 @@
 #define CUSTOM_TEXTURE_0_REGISTER		SHADER_REGISTER(t, 4)
 #define CUSTOM_TEXTURE_1_REGISTER		SHADER_REGISTER(t, 5)
 
+#define EPSILON                         0.0001f
+
 struct ShaderGlobals
 {
     float4x4 backgroundMVP;
