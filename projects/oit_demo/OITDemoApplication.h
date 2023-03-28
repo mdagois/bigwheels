@@ -85,7 +85,6 @@ private:
     grfx::MeshPtr mMonkeyMesh;
 
     grfx::BufferPtr  mShaderGlobalsBuffer;
-    grfx::SamplerPtr mNearestSampler;
 
     grfx::DrawPassPtr            mOpaquePass;
     grfx::DescriptorSetLayoutPtr mOpaqueDescriptorSetLayout;

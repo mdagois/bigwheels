@@ -16,18 +16,19 @@
 #include "Common.hlsli"
 #include "FullscreenVS.hlsli"
 
-SamplerState NearestSampler  : register(NEAREST_SAMPLER_REGISTER);
 Texture2D    ColorTexture    : register(CUSTOM_TEXTURE_0_REGISTER);
 Texture2D    CoverageTexture : register(CUSTOM_TEXTURE_1_REGISTER);
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-    const float4 colorInfo    = ColorTexture.Sample(NearestSampler, input.uv);
+    const int3 texelCoord = int3(input.position.xy, 0);
+
+    const float4 colorInfo    = ColorTexture.Load(texelCoord);
     const float3 colorSum     = colorInfo.rgb;
     const float  alphaSum     = max(colorInfo.a, EPSILON);
     const float3 averageColor = colorSum / alphaSum;
 
-    const float coverage = 1.0f - CoverageTexture.Sample(NearestSampler, input.uv).r;
+    const float coverage = 1.0f - CoverageTexture.Load(texelCoord).r;
 
     return float4(averageColor * coverage, coverage);
 }
