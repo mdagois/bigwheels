@@ -29,6 +29,8 @@
 struct ShaderGlobals
 {
     float4x4 backgroundMVP;
+    float4   backgroundColor;
+
     float4x4 meshMVP;
     float    meshOpacity;
 };

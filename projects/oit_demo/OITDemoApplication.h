@@ -48,11 +48,15 @@ private:
         GuiParameters()
             : meshOpacity(1.0f), algorithm(ALGORITHM_UNSORTED_OVER), faceMode(FACE_MODE_ALL), displayBackground(true)
         {
+            backgroundColor[0] = 0.51f;
+            backgroundColor[1] = 0.71f;
+            backgroundColor[2] = 0.85f;
         }
 
         float     meshOpacity;
         Algorithm algorithm;
         FaceMode  faceMode;
+        float     backgroundColor[3];
         bool      displayBackground;
     };
 
@@ -87,7 +91,7 @@ private:
     grfx::MeshPtr mBackgroundMesh;
     grfx::MeshPtr mMonkeyMesh;
 
-    grfx::BufferPtr  mShaderGlobalsBuffer;
+    grfx::BufferPtr mShaderGlobalsBuffer;
 
     grfx::DrawPassPtr            mOpaquePass;
     grfx::DescriptorSetLayoutPtr mOpaqueDescriptorSetLayout;

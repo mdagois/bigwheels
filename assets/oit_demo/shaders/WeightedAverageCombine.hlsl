@@ -29,7 +29,7 @@ float4 psmain(VSOutput input) : SV_TARGET
     const float3 averageColor = colorSum / alphaSum;
 
     const uint count     = max(1, (uint)CountTexture.Load(texelCoord));
-    const float coverage = 1.0f - pow(1.0f - (alphaSum / count), count);
+    const float coverage = 1.0f - pow(max(0.0f, 1.0f - (alphaSum / count)), count);
 
     return float4(averageColor * coverage, coverage);
 }

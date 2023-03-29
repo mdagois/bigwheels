@@ -29,5 +29,5 @@ VSOutput vsmain(float4 position : POSITION)
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-    return (float4)1.0f;
+    return g_Globals.backgroundColor;
 }

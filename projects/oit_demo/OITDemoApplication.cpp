@@ -289,8 +289,13 @@ void OITDemoApp::Update()
 
         ShaderGlobals shaderGlobals = {};
         {
-            const float4x4 M            = glm::scale(float3(3.0));
+            const float4x4 M            = glm::scale(float3(20.0));
             shaderGlobals.backgroundMVP = VP * M;
+
+            shaderGlobals.backgroundColor.r = mGuiParameters.backgroundColor[0];
+            shaderGlobals.backgroundColor.g = mGuiParameters.backgroundColor[1];
+            shaderGlobals.backgroundColor.b = mGuiParameters.backgroundColor[2];
+            shaderGlobals.backgroundColor.a = 1.0f;
         }
         {
             const float4x4 M =
@@ -307,17 +312,21 @@ void OITDemoApp::Update()
     // GUI
     if (ImGui::Begin("Parameters")) {
         const char* algorithmChoices[] =
-        {
-            "Unsorted over",
-            "Weighted sum",
-            "Weighted average",
-            "New blended operator",
-        };
+            {
+                "Unsorted over",
+                "Weighted sum",
+                "Weighted average",
+                "New blended operator",
+            };
         static_assert(IM_ARRAYSIZE(algorithmChoices) == ALGORITHMS_COUNT, "Algorithm count mismatch");
         ImGui::Combo("Algorithm", reinterpret_cast<int32_t*>(&mGuiParameters.algorithm), algorithmChoices, IM_ARRAYSIZE(algorithmChoices));
 
         ImGui::SliderFloat("Opacity", &mGuiParameters.meshOpacity, 0.0f, 1.0f, "%.2f");
         ImGui::Checkbox("Display background", &mGuiParameters.displayBackground);
+        if (mGuiParameters.displayBackground) {
+            ImGui::ColorPicker3(
+                "Background color", mGuiParameters.backgroundColor, ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoSmallPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_InputRGB);
+        }
 
         ImGui::Separator();
 
