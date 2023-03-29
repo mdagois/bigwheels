@@ -14,21 +14,18 @@
 
 #define IS_SHADER
 #include "Common.hlsli"
-#include "FullscreenVS.hlsli"
+#include "TransparencyVS.hlsli"
 
-Texture2D        ColorTexture    : register(CUSTOM_TEXTURE_0_REGISTER);
-Texture2D<float> CoverageTexture : register(CUSTOM_TEXTURE_1_REGISTER);
-
-float4 psmain(VSOutput input) : SV_TARGET
+struct PSOutput
 {
-    const int3 texelCoord = int3(input.position.xy, 0);
+    float4 color    : SV_TARGET0;
+    float  count    : SV_TARGET1;
+};
 
-    const float4 colorInfo    = ColorTexture.Load(texelCoord);
-    const float3 colorSum     = colorInfo.rgb;
-    const float  alphaSum     = max(colorInfo.a, EPSILON);
-    const float3 averageColor = colorSum / alphaSum;
-
-    const float coverage = 1.0f - CoverageTexture.Load(texelCoord);
-
-    return float4(averageColor * coverage, coverage);
+PSOutput psmain(VSOutput input)
+{
+    PSOutput output = (PSOutput)0;
+    output.color    = float4(input.color * g_Globals.meshOpacity, g_Globals.meshOpacity);
+    output.count    = 1.0f;
+    return output;
 }

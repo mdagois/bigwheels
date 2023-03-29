@@ -34,6 +34,18 @@ generate_rules_for_shader(
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
+    "weighted_average_gather"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageGather.hlsl"
+    INCLUDES ${INCLUDE_FILES}
+    STAGES "ps" "vs")
+
+generate_rules_for_shader(
+    "weighted_average_combine"
+	SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageCombine.hlsl"
+    INCLUDES ${INCLUDE_FILES}
+    STAGES "ps" "vs")
+
+generate_rules_for_shader(
     "new_blended_operator_gather"
 	SOURCE "${PPX_DIR}/assets/oit_demo/shaders/NewBlendedOperatorGather.hlsl"
     INCLUDES ${INCLUDE_FILES}

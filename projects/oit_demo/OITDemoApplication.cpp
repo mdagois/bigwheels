@@ -273,6 +273,7 @@ void OITDemoApp::Setup()
     SetupCommon();
     SetupUnsortedOver();
     SetupWeightedSum();
+    SetupWeightedAverage();
     SetupNewBlendedOperator();
 }
 
@@ -306,11 +307,12 @@ void OITDemoApp::Update()
     // GUI
     if (ImGui::Begin("Parameters")) {
         const char* algorithmChoices[] =
-            {
-                "Unsorted over",
-                "Weighted sum",
-                "New blended operator",
-            };
+        {
+            "Unsorted over",
+            "Weighted sum",
+            "Weighted average",
+            "New blended operator",
+        };
         static_assert(IM_ARRAYSIZE(algorithmChoices) == ALGORITHMS_COUNT, "Algorithm count mismatch");
         ImGui::Combo("Algorithm", reinterpret_cast<int32_t*>(&mGuiParameters.algorithm), algorithmChoices, IM_ARRAYSIZE(algorithmChoices));
 
@@ -378,6 +380,9 @@ void OITDemoApp::RecordTransparency()
             break;
         case ALGORITHM_WEIGHTED_SUM:
             RecordWeightedSum();
+            break;
+        case ALGORITHM_WEIGHTED_AVERAGE:
+            RecordWeightedAverage();
             break;
         case ALGORITHM_NEW_BLENDED_OPERATOR:
             RecordNewBlendedOperator();

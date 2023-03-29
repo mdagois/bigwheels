@@ -29,6 +29,7 @@ private:
     {
         ALGORITHM_UNSORTED_OVER,
         ALGORITHM_WEIGHTED_SUM,
+        ALGORITHM_WEIGHTED_AVERAGE,
         ALGORITHM_NEW_BLENDED_OPERATOR,
         ALGORITHMS_COUNT,
     };
@@ -59,6 +60,7 @@ private:
     void SetupCommon();
     void SetupUnsortedOver();
     void SetupWeightedSum();
+    void SetupWeightedAverage();
     void SetupNewBlendedOperator();
 
     void Update();
@@ -66,6 +68,7 @@ private:
     void RecordOpaque();
     void RecordUnsortedOver();
     void RecordWeightedSum();
+    void RecordWeightedAverage();
     void RecordNewBlendedOperator();
     void RecordTransparency();
     void RecordComposite(grfx::RenderPassPtr renderPass);
@@ -119,6 +122,23 @@ private:
         grfx::PipelineInterfacePtr pipelineInterface;
         grfx::GraphicsPipelinePtr  pipeline;
     } mWeightedSum;
+
+    struct
+    {
+        grfx::TexturePtr  colorTexture;
+        grfx::TexturePtr  countTexture;
+        grfx::DrawPassPtr gatherPass;
+
+        grfx::DescriptorSetLayoutPtr gatherDescriptorSetLayout;
+        grfx::DescriptorSetPtr       gatherDescriptorSet;
+        grfx::PipelineInterfacePtr   gatherPipelineInterface;
+        grfx::GraphicsPipelinePtr    gatherPipeline;
+
+        grfx::DescriptorSetLayoutPtr combineDescriptorSetLayout;
+        grfx::DescriptorSetPtr       combineDescriptorSet;
+        grfx::PipelineInterfacePtr   combinePipelineInterface;
+        grfx::GraphicsPipelinePtr    combinePipeline;
+    } mWeightedAverage;
 
     struct
     {

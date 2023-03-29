@@ -16,8 +16,8 @@
 #include "Common.hlsli"
 #include "FullscreenVS.hlsli"
 
-Texture2D        ColorTexture    : register(CUSTOM_TEXTURE_0_REGISTER);
-Texture2D<float> CoverageTexture : register(CUSTOM_TEXTURE_1_REGISTER);
+Texture2D        ColorTexture : register(CUSTOM_TEXTURE_0_REGISTER);
+Texture2D<float> CountTexture : register(CUSTOM_TEXTURE_1_REGISTER);
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
@@ -28,7 +28,8 @@ float4 psmain(VSOutput input) : SV_TARGET
     const float  alphaSum     = max(colorInfo.a, EPSILON);
     const float3 averageColor = colorSum / alphaSum;
 
-    const float coverage = 1.0f - CoverageTexture.Load(texelCoord);
+    const uint count     = max(1, (uint)CountTexture.Load(texelCoord));
+    const float coverage = 1.0f - pow(1.0f - (alphaSum / count), count);
 
     return float4(averageColor * coverage, coverage);
 }
