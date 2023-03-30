@@ -15,7 +15,7 @@
 #include "OITDemoApplication.h"
 #include "shaders/Common.hlsli"
 
-void OITDemoApp::SetupNewBlendedOperator()
+void OITDemoApp::SetupWeightedAverageWithCoverage()
 {
     ////////////////////////////////////////
     // Common
@@ -39,11 +39,11 @@ void OITDemoApp::SetupNewBlendedOperator()
 
         createInfo.imageFormat   = grfx::FORMAT_R16G16B16A16_FLOAT;
         createInfo.RTVClearValue = {0, 0, 0, 0};
-        PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mNewBlendedOperator.colorTexture));
+        PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mWeightedAverageWithCoverage.colorTexture));
 
         createInfo.imageFormat   = grfx::FORMAT_R8_UNORM;
         createInfo.RTVClearValue = {1, 1, 1, 1};
-        PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mNewBlendedOperator.coverageTexture));
+        PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mWeightedAverageWithCoverage.coverageTexture));
     }
 
     ////////////////////////////////////////
@@ -53,26 +53,26 @@ void OITDemoApp::SetupNewBlendedOperator()
     // Pass
     {
         grfx::DrawPassCreateInfo2 createInfo  = {};
-        createInfo.width                      = mNewBlendedOperator.colorTexture->GetWidth();
-        createInfo.height                     = mNewBlendedOperator.colorTexture->GetHeight();
+        createInfo.width                      = mWeightedAverageWithCoverage.colorTexture->GetWidth();
+        createInfo.height                     = mWeightedAverageWithCoverage.colorTexture->GetHeight();
         createInfo.renderTargetCount          = 2;
-        createInfo.pRenderTargetImages[0]     = mNewBlendedOperator.colorTexture->GetImage();
-        createInfo.pRenderTargetImages[1]     = mNewBlendedOperator.coverageTexture->GetImage();
+        createInfo.pRenderTargetImages[0]     = mWeightedAverageWithCoverage.colorTexture->GetImage();
+        createInfo.pRenderTargetImages[1]     = mWeightedAverageWithCoverage.coverageTexture->GetImage();
         createInfo.pDepthStencilImage         = mOpaquePass->GetDepthStencilTexture()->GetImage();
         createInfo.depthStencilState          = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
         createInfo.renderTargetClearValues[0] = {0, 0, 0, 0};
         createInfo.renderTargetClearValues[1] = {1, 1, 1, 1};
         createInfo.depthStencilClearValue     = {1.0f, 0xFF};
-        PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mNewBlendedOperator.gatherPass));
+        PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mWeightedAverageWithCoverage.gatherPass));
     }
 
     // Descriptor
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mNewBlendedOperator.gatherDescriptorSetLayout));
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mWeightedAverageWithCoverage.gatherDescriptorSetLayout));
 
-        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mNewBlendedOperator.gatherDescriptorSetLayout, &mNewBlendedOperator.gatherDescriptorSet));
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mWeightedAverageWithCoverage.gatherDescriptorSetLayout, &mWeightedAverageWithCoverage.gatherDescriptorSet));
 
         grfx::WriteDescriptor write = {};
         write.binding               = SHADER_GLOBALS_REGISTER;
@@ -80,7 +80,7 @@ void OITDemoApp::SetupNewBlendedOperator()
         write.bufferOffset          = 0;
         write.bufferRange           = PPX_WHOLE_SIZE;
         write.pBuffer               = mShaderGlobalsBuffer;
-        PPX_CHECKED_CALL(mNewBlendedOperator.gatherDescriptorSet->UpdateDescriptors(1, &write));
+        PPX_CHECKED_CALL(mWeightedAverageWithCoverage.gatherDescriptorSet->UpdateDescriptors(1, &write));
     }
 
     // Pipeline
@@ -88,12 +88,12 @@ void OITDemoApp::SetupNewBlendedOperator()
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 1;
         piCreateInfo.sets[0].set                       = 0;
-        piCreateInfo.sets[0].pLayout                   = mNewBlendedOperator.gatherDescriptorSetLayout;
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mNewBlendedOperator.gatherPipelineInterface));
+        piCreateInfo.sets[0].pLayout                   = mWeightedAverageWithCoverage.gatherDescriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mWeightedAverageWithCoverage.gatherPipelineInterface));
 
         grfx::ShaderModulePtr VS, PS;
-        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "NewBlendedOperatorGather.vs", &VS));
-        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "NewBlendedOperatorGather.ps", &PS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageWithCoverageGather.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageWithCoverageGather.ps", &PS));
 
         grfx::GraphicsPipelineCreateInfo gpCreateInfo   = {};
         gpCreateInfo.VS                                 = {VS, "vsmain"};
@@ -129,11 +129,11 @@ void OITDemoApp::SetupNewBlendedOperator()
         gpCreateInfo.colorBlendState.blendAttachments[1].colorWriteMask      = grfx::ColorComponentFlags::RGBA();
 
         gpCreateInfo.outputState.renderTargetCount      = 2;
-        gpCreateInfo.outputState.renderTargetFormats[0] = mNewBlendedOperator.colorTexture->GetImageFormat();
-        gpCreateInfo.outputState.renderTargetFormats[1] = mNewBlendedOperator.coverageTexture->GetImageFormat();
+        gpCreateInfo.outputState.renderTargetFormats[0] = mWeightedAverageWithCoverage.colorTexture->GetImageFormat();
+        gpCreateInfo.outputState.renderTargetFormats[1] = mWeightedAverageWithCoverage.coverageTexture->GetImageFormat();
         gpCreateInfo.outputState.depthStencilFormat     = mOpaquePass->GetDepthStencilTexture()->GetImageFormat();
-        gpCreateInfo.pPipelineInterface                 = mNewBlendedOperator.gatherPipelineInterface;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mNewBlendedOperator.gatherPipeline));
+        gpCreateInfo.pPipelineInterface                 = mWeightedAverageWithCoverage.gatherPipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mWeightedAverageWithCoverage.gatherPipeline));
 
         GetDevice()->DestroyShaderModule(VS);
         GetDevice()->DestroyShaderModule(PS);
@@ -148,23 +148,23 @@ void OITDemoApp::SetupNewBlendedOperator()
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_1_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mNewBlendedOperator.combineDescriptorSetLayout));
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mWeightedAverageWithCoverage.combineDescriptorSetLayout));
 
-        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mNewBlendedOperator.combineDescriptorSetLayout, &mNewBlendedOperator.combineDescriptorSet));
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mWeightedAverageWithCoverage.combineDescriptorSetLayout, &mWeightedAverageWithCoverage.combineDescriptorSet));
 
         grfx::WriteDescriptor writes[2] = {};
 
         writes[0].binding    = CUSTOM_TEXTURE_0_REGISTER;
         writes[0].arrayIndex = 0;
         writes[0].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        writes[0].pImageView = mNewBlendedOperator.colorTexture->GetSampledImageView();
+        writes[0].pImageView = mWeightedAverageWithCoverage.colorTexture->GetSampledImageView();
 
         writes[1].binding    = CUSTOM_TEXTURE_1_REGISTER;
         writes[1].arrayIndex = 0;
         writes[1].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        writes[1].pImageView = mNewBlendedOperator.coverageTexture->GetSampledImageView();
+        writes[1].pImageView = mWeightedAverageWithCoverage.coverageTexture->GetSampledImageView();
 
-        PPX_CHECKED_CALL(mNewBlendedOperator.combineDescriptorSet->UpdateDescriptors(2, writes));
+        PPX_CHECKED_CALL(mWeightedAverageWithCoverage.combineDescriptorSet->UpdateDescriptors(2, writes));
     }
 
     // Pipeline
@@ -172,12 +172,12 @@ void OITDemoApp::SetupNewBlendedOperator()
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 1;
         piCreateInfo.sets[0].set                       = 0;
-        piCreateInfo.sets[0].pLayout                   = mNewBlendedOperator.combineDescriptorSetLayout;
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mNewBlendedOperator.combinePipelineInterface));
+        piCreateInfo.sets[0].pLayout                   = mWeightedAverageWithCoverage.combineDescriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mWeightedAverageWithCoverage.combinePipelineInterface));
 
         grfx::ShaderModulePtr VS, PS;
-        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "NewBlendedOperatorCombine.vs", &VS));
-        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "NewBlendedOperatorCombine.ps", &PS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageWithCoverageCombine.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageWithCoverageCombine.ps", &PS));
 
         grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
         gpCreateInfo.VS                                 = {VS, "vsmain"};
@@ -193,38 +193,38 @@ void OITDemoApp::SetupNewBlendedOperator()
         gpCreateInfo.outputState.renderTargetCount      = 1;
         gpCreateInfo.outputState.renderTargetFormats[0] = mTransparencyTexture->GetImageFormat();
         gpCreateInfo.outputState.depthStencilFormat     = mOpaquePass->GetDepthStencilTexture()->GetImageFormat();
-        gpCreateInfo.pPipelineInterface                 = mNewBlendedOperator.combinePipelineInterface;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mNewBlendedOperator.combinePipeline));
+        gpCreateInfo.pPipelineInterface                 = mWeightedAverageWithCoverage.combinePipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mWeightedAverageWithCoverage.combinePipeline));
 
         GetDevice()->DestroyShaderModule(VS);
         GetDevice()->DestroyShaderModule(PS);
     }
 }
 
-void OITDemoApp::RecordNewBlendedOperator()
+void OITDemoApp::RecordWeightedAverageWithCoverage()
 {
     // Gather pass: compute the formula factors for each pixels
     {
         mCommandBuffer->TransitionImageLayout(
-            mNewBlendedOperator.gatherPass,
+            mWeightedAverageWithCoverage.gatherPass,
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
             grfx::RESOURCE_STATE_RENDER_TARGET,
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
             grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
-        mCommandBuffer->BeginRenderPass(mNewBlendedOperator.gatherPass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_RENDER_TARGETS);
+        mCommandBuffer->BeginRenderPass(mWeightedAverageWithCoverage.gatherPass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_RENDER_TARGETS);
 
         mCommandBuffer->SetScissors(mTransparencyPass->GetScissor());
         mCommandBuffer->SetViewports(mTransparencyPass->GetViewport());
 
-        mCommandBuffer->BindGraphicsDescriptorSets(mNewBlendedOperator.gatherPipelineInterface, 1, &mNewBlendedOperator.gatherDescriptorSet);
-        mCommandBuffer->BindGraphicsPipeline(mNewBlendedOperator.gatherPipeline);
+        mCommandBuffer->BindGraphicsDescriptorSets(mWeightedAverageWithCoverage.gatherPipelineInterface, 1, &mWeightedAverageWithCoverage.gatherDescriptorSet);
+        mCommandBuffer->BindGraphicsPipeline(mWeightedAverageWithCoverage.gatherPipeline);
         mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
         mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
         mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
 
         mCommandBuffer->EndRenderPass();
         mCommandBuffer->TransitionImageLayout(
-            mNewBlendedOperator.gatherPass,
+            mWeightedAverageWithCoverage.gatherPass,
             grfx::RESOURCE_STATE_RENDER_TARGET,
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
             grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE,
@@ -244,8 +244,8 @@ void OITDemoApp::RecordNewBlendedOperator()
         mCommandBuffer->SetScissors(mTransparencyPass->GetScissor());
         mCommandBuffer->SetViewports(mTransparencyPass->GetViewport());
 
-        mCommandBuffer->BindGraphicsDescriptorSets(mNewBlendedOperator.combinePipelineInterface, 1, &mNewBlendedOperator.combineDescriptorSet);
-        mCommandBuffer->BindGraphicsPipeline(mNewBlendedOperator.combinePipeline);
+        mCommandBuffer->BindGraphicsDescriptorSets(mWeightedAverageWithCoverage.combinePipelineInterface, 1, &mWeightedAverageWithCoverage.combineDescriptorSet);
+        mCommandBuffer->BindGraphicsPipeline(mWeightedAverageWithCoverage.combinePipeline);
         mCommandBuffer->Draw(3);
 
         mCommandBuffer->EndRenderPass();

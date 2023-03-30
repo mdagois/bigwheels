@@ -30,7 +30,7 @@ private:
         ALGORITHM_UNSORTED_OVER,
         ALGORITHM_WEIGHTED_SUM,
         ALGORITHM_WEIGHTED_AVERAGE,
-        ALGORITHM_NEW_BLENDED_OPERATOR,
+        ALGORITHM_WEIGHTED_AVERAGE_WITH_COVERAGE,
         ALGORITHMS_COUNT,
     };
 
@@ -65,7 +65,7 @@ private:
     void SetupUnsortedOver();
     void SetupWeightedSum();
     void SetupWeightedAverage();
-    void SetupNewBlendedOperator();
+    void SetupWeightedAverageWithCoverage();
 
     void Update();
 
@@ -73,7 +73,7 @@ private:
     void RecordUnsortedOver();
     void RecordWeightedSum();
     void RecordWeightedAverage();
-    void RecordNewBlendedOperator();
+    void RecordWeightedAverageWithCoverage();
     void RecordTransparency();
     void RecordComposite(grfx::RenderPassPtr renderPass);
 
@@ -159,5 +159,5 @@ private:
         grfx::DescriptorSetPtr       combineDescriptorSet;
         grfx::PipelineInterfacePtr   combinePipelineInterface;
         grfx::GraphicsPipelinePtr    combinePipeline;
-    } mNewBlendedOperator;
+    } mWeightedAverageWithCoverage;
 };
