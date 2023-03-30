@@ -28,7 +28,7 @@ They are handled by the sample.
 
 It is the algorithms' responsibility to record the transparency pass.
 The pass render target is a 16-bit float RGBA texture.
-The RGB channel must contain the premultiplied alpha color.
+The RGB channel must contain the color with alpha premultiplied.
 The A channel must specify the coverage, i.e. how much of the background is obscured by the transparent geometry.
 
 The formula used to compute the final color during the composite pass is:
