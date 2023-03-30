@@ -284,8 +284,7 @@ void OITDemoApp::FillSupportedAlgorithmData()
 {
     AddSupportedAlgorithm("Unsorted over", ALGORITHM_UNSORTED_OVER);
     AddSupportedAlgorithm("Weighted sum", ALGORITHM_WEIGHTED_SUM);
-    if(GetDevice()->IndependentBlendingSupported())
-    {
+    if (GetDevice()->IndependentBlendingSupported()) {
         AddSupportedAlgorithm("Weighted average", ALGORITHM_WEIGHTED_AVERAGE);
         AddSupportedAlgorithm("Weighted average with coverage", ALGORITHM_WEIGHTED_AVERAGE_WITH_COVERAGE);
     }

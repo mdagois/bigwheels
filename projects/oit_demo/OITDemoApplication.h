@@ -53,15 +53,15 @@ private:
             backgroundColor[2] = 0.85f;
         }
 
-        float     meshOpacity;
+        float    meshOpacity;
         int32_t  algorithmDataIndex;
-        FaceMode  faceMode;
-        float     backgroundColor[3];
-        bool      displayBackground;
+        FaceMode faceMode;
+        float    backgroundColor[3];
+        bool     displayBackground;
     };
 
     std::vector<const char*> mSupportedAlgorithmNames;
-    std::vector<Algorithm> mSupportedAlgorithmIds;
+    std::vector<Algorithm>   mSupportedAlgorithmIds;
 
 private:
     void SetupCommon();
@@ -71,8 +71,8 @@ private:
     void SetupWeightedAverage();
     void SetupWeightedAverageWithCoverage();
 
-    void FillSupportedAlgorithmData();
-    void AddSupportedAlgorithm(const char* name, Algorithm algorithm);
+    void      FillSupportedAlgorithmData();
+    void      AddSupportedAlgorithm(const char* name, Algorithm algorithm);
     Algorithm GetSelectedAlgorithm() const;
 
     void Update();
