@@ -1,8 +1,6 @@
 # Order-independent transparency demo
 
-An application that implements a variety of Order-independent transparency (OIT) techniques.
-The sample allows easy comparison of the results of the supported rendering algorithms.
-It also exposes the shortcomings of each technique via a few tweakable parameters.
+An application that implements various order-independent transparency (OIT) techniques.
 
 ## Background
 
@@ -18,36 +16,48 @@ OIT is a family of GPU techniques that removes the need of sorting geometry befo
 Some algorithms produce accurate transparency rendering results, while others aim for fast approximations.
 Each algorithm has advantages and disadvantages, trading off between quality, memory usage and performance.
 
-## Usage
+## Inner workings
 
-The sample consists of two independent views.
-Each view displays the same model rendered with one of the supported OIT algorithms.
-A configuration window is available to tweak the following parameters:
+The sample has an opaque pass, a transparency pass and a composite pass.
+The opaque pass renders background geometry common to all algorithms.
+The transparency pass renders the transparent geometry using the selected OIT algorithm.
+The composite pass combines the opaque and transparency pass results to form the final image.
 
-- Transparent model
-    - Opacity in both views
-    - Choice of mesh
-    - Choice of vertex color or texture
-    - Different triangle order (to make the algorithm issues more apparent)
-- Display of an optional background mesh
-- For each view
-    - OIT algorithm
-    - Options specific to the selected algorithm, mostly meant to expose shortcomings
+The opaque and composite passes are independent of the OIT algorithm used to render transparent objects.
+They are handled by the sample.
 
-The following metrics are displayed to compare the algorithms to each other:
+It is the algorithms' responsibility to record the transparency pass.
+The pass render target is a 16-bit float RGBA texture.
+The RGB channel must contain the premultiplied alpha color.
+The A channel must specify the coverage, i.e. how much of the background is obscured by the transparent geometry.
 
-- GPU frame time in milliseconds
-- Quality
-    - The results of an algorithm are compared to the most accurate algorithm available (Per-pixel linked list)
-    - The quality score is between 0.0 (poorest quality) and 1.0 (best quality)
+The formula used to compute the final color during the composite pass is:
 
-## Supported algorithms
+    transparent_color + (1 - coverage) * opaque_color
 
-| Algorithm                 | Type              | Additional options
-| ---                       | ---               | ---
-| Unsorted over             | Approximate       | Split draw calls for back/front faces
-| Per-pixel linked lists    | Exact             | Control the size of the fragment buffer
-| Depth peeling             | Exact             | Number of layers
-| Weighted sum              | Approximate       |
-| New blended operator      | Approximate       |
+## Algorithms
+
+Each algorithm has its own CPP and shader files.
+Algorithms are kept separated on purpose, so that each algorithm can be studied on its own.
+
+The following algorithms are currently supported.
+
+| Algorithm                           | Type              | Additional options      | References
+| ---                                 | ---               | ---                     |---
+| Unsorted over                       | Approximate       | Split draw calls for back/front faces | [PD1984]
+| Weighted sum                        | Approximate       | | [MK2007], [BM2008]
+| Weighted average                    | Approximate       | | [BM2008]
+| Weighted average with coverage      | Approximate       | | [BM2008], [MB2013]
+
+## References
+
+[MB2013] Morgan McGuire and Louis Bavoil. Weighted Blended Order-Independent Transparency. 2013.
+
+[BM2008] Louis Bavoil and Kevin Myers. Order Independent Transparency with Dual Depth Peeling. 2008.
+
+[MK2007] Houman Meshkin, Sort-Independent Alpha Blending. 2007.
+
+[EC2001] Everitt Cass. Interactive Order-Independent Transparency. 2001.
+
+[PD1984] Thomas Porter and Tom Duff. Compositing digital images. 1984.
 
