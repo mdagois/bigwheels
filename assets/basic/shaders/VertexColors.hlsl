@@ -46,4 +46,3 @@ float4 psmain(VSOutput input) : SV_TARGET
 {
 	return float4(input.Color, 1);
 }
-
