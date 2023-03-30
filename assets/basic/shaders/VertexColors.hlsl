@@ -29,8 +29,7 @@ cbuffer Transform : register(b0)
 ConstantBuffer<TransformData> Transform : register(b0);
 #endif // defined(PPX_D3D11)
 
-struct VSOutput
-{
+struct VSOutput {
 	float4 Position : SV_POSITION;
 	float3 Color    : COLOR;
 };
@@ -47,3 +46,4 @@ float4 psmain(VSOutput input) : SV_TARGET
 {
 	return float4(input.Color, 1);
 }
+
