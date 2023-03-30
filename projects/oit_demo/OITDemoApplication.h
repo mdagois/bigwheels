@@ -46,7 +46,7 @@ private:
     struct GuiParameters
     {
         GuiParameters()
-            : meshOpacity(1.0f), algorithm(ALGORITHM_UNSORTED_OVER), faceMode(FACE_MODE_ALL), displayBackground(true)
+            : meshOpacity(1.0f), algorithmDataIndex(0), faceMode(FACE_MODE_ALL), displayBackground(true)
         {
             backgroundColor[0] = 0.51f;
             backgroundColor[1] = 0.71f;
@@ -54,18 +54,26 @@ private:
         }
 
         float     meshOpacity;
-        Algorithm algorithm;
+        int32_t  algorithmDataIndex;
         FaceMode  faceMode;
         float     backgroundColor[3];
         bool      displayBackground;
     };
 
+    std::vector<const char*> mSupportedAlgorithmNames;
+    std::vector<Algorithm> mSupportedAlgorithmIds;
+
 private:
     void SetupCommon();
+
     void SetupUnsortedOver();
     void SetupWeightedSum();
     void SetupWeightedAverage();
     void SetupWeightedAverageWithCoverage();
+
+    void FillSupportedAlgorithmData();
+    void AddSupportedAlgorithm(const char* name, Algorithm algorithm);
+    Algorithm GetSelectedAlgorithm() const;
 
     void Update();
 

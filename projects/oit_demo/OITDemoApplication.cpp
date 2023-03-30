@@ -268,9 +268,34 @@ void OITDemoApp::SetupCommon()
     }
 }
 
+void OITDemoApp::AddSupportedAlgorithm(const char* name, Algorithm algorithm)
+{
+    mSupportedAlgorithmNames.push_back(name);
+    mSupportedAlgorithmIds.push_back(algorithm);
+    PPX_ASSERT_MSG(mSupportedAlgorithmNames.size() == mSupportedAlgorithmIds.size(), "supported algorithm data is out-of-sync");
+}
+
+OITDemoApp::Algorithm OITDemoApp::GetSelectedAlgorithm() const
+{
+    return mSupportedAlgorithmIds[mGuiParameters.algorithmDataIndex];
+}
+
+void OITDemoApp::FillSupportedAlgorithmData()
+{
+    AddSupportedAlgorithm("Unsorted over", ALGORITHM_UNSORTED_OVER);
+    AddSupportedAlgorithm("Weighted sum", ALGORITHM_WEIGHTED_SUM);
+    if(GetDevice()->IndependentBlendingSupported())
+    {
+        AddSupportedAlgorithm("Weighted average", ALGORITHM_WEIGHTED_AVERAGE);
+        AddSupportedAlgorithm("Weighted average with coverage", ALGORITHM_WEIGHTED_AVERAGE_WITH_COVERAGE);
+    }
+}
+
 void OITDemoApp::Setup()
 {
     SetupCommon();
+    FillSupportedAlgorithmData();
+
     SetupUnsortedOver();
     SetupWeightedSum();
     SetupWeightedAverage();
@@ -311,15 +336,7 @@ void OITDemoApp::Update()
 
     // GUI
     if (ImGui::Begin("Parameters")) {
-        const char* algorithmChoices[] =
-            {
-                "Unsorted over",
-                "Weighted sum",
-                "Weighted average",
-                "Weighted average with coverage",
-            };
-        static_assert(IM_ARRAYSIZE(algorithmChoices) == ALGORITHMS_COUNT, "Algorithm count mismatch");
-        ImGui::Combo("Algorithm", reinterpret_cast<int32_t*>(&mGuiParameters.algorithm), algorithmChoices, IM_ARRAYSIZE(algorithmChoices));
+        ImGui::Combo("Algorithm", &mGuiParameters.algorithmDataIndex, mSupportedAlgorithmNames.data(), static_cast<int>(mSupportedAlgorithmNames.size()));
 
         ImGui::SliderFloat("Opacity", &mGuiParameters.meshOpacity, 0.0f, 1.0f, "%.2f");
         ImGui::Checkbox("Display background", &mGuiParameters.displayBackground);
@@ -330,7 +347,7 @@ void OITDemoApp::Update()
 
         ImGui::Separator();
 
-        switch (mGuiParameters.algorithm) {
+        switch (GetSelectedAlgorithm()) {
             case ALGORITHM_UNSORTED_OVER: {
                 const char* faceModeChoices[] =
                     {
@@ -383,7 +400,7 @@ void OITDemoApp::RecordOpaque()
 
 void OITDemoApp::RecordTransparency()
 {
-    switch (mGuiParameters.algorithm) {
+    switch (GetSelectedAlgorithm()) {
         case ALGORITHM_UNSORTED_OVER:
             RecordUnsortedOver();
             break;
