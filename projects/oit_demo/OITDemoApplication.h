@@ -30,6 +30,7 @@ private:
         ALGORITHM_UNSORTED_OVER,
         ALGORITHM_WEIGHTED_SUM,
         ALGORITHM_WEIGHTED_AVERAGE,
+        ALGORITHM_DEPTH_PEELING,
         ALGORITHMS_COUNT,
     };
 
@@ -63,6 +64,9 @@ private:
 
         // Weighted average
         WeightAverageType weightedAverageType;
+
+        // Depth peeling
+        bool depthPeelingDualMode;
     };
 
     std::vector<const char*> mSupportedAlgorithmNames;
@@ -70,10 +74,10 @@ private:
 
 private:
     void SetupCommon();
-
     void SetupUnsortedOver();
     void SetupWeightedSum();
     void SetupWeightedAverage();
+    void SetupDepthPeeling();
 
     void      FillSupportedAlgorithmData();
     void      AddSupportedAlgorithm(const char* name, Algorithm algorithm);
@@ -87,6 +91,7 @@ private:
     void RecordUnsortedOver();
     void RecordWeightedSum();
     void RecordWeightedAverage();
+    void RecordDepthPeeling();
     void RecordTransparency();
     void RecordComposite(grfx::RenderPassPtr renderPass);
 
@@ -171,4 +176,13 @@ private:
             grfx::GraphicsPipelinePtr combinePipeline;
         } coverage;
     } mWeightedAverage;
+
+    struct
+    {
+        static constexpr uint32_t LAYERS_COUNT = 8;
+
+        grfx::TexturePtr  layerTextures[LAYERS_COUNT];
+        grfx::TexturePtr  depthTextures[2];
+        grfx::DrawPassPtr drawPasses[LAYERS_COUNT];
+    } mDepthPeeling;
 };

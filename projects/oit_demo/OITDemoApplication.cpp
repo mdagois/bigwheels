@@ -23,7 +23,7 @@
 #include "shaders/Common.hlsli"
 
 OITDemoApp::GuiParameters::GuiParameters()
-    : meshOpacity(1.0f), algorithmDataIndex(0), displayBackground(true), faceMode(FACE_MODE_ALL), weightedAverageType(WEIGHTED_AVERAGE_TYPE_FRAGMENT_COUNT)
+    : meshOpacity(1.0f), algorithmDataIndex(0), displayBackground(true), faceMode(FACE_MODE_ALL), weightedAverageType(WEIGHTED_AVERAGE_TYPE_FRAGMENT_COUNT), depthPeelingDualMode(false)
 {
     backgroundColor[0] = 0.51f;
     backgroundColor[1] = 0.71f;
@@ -308,6 +308,7 @@ void OITDemoApp::FillSupportedAlgorithmData()
     if (GetDevice()->IndependentBlendingSupported()) {
         AddSupportedAlgorithm("Weighted average", ALGORITHM_WEIGHTED_AVERAGE);
     }
+    AddSupportedAlgorithm("Depth peeling", ALGORITHM_DEPTH_PEELING);
 }
 
 void OITDemoApp::SetDefaultAlgorithmIndex(Algorithm defaultAlgorithm)
@@ -334,6 +335,7 @@ void OITDemoApp::Setup()
     SetupUnsortedOver();
     SetupWeightedSum();
     SetupWeightedAverage();
+    SetupDepthPeeling();
 }
 
 void OITDemoApp::Update()
@@ -413,6 +415,10 @@ void OITDemoApp::UpdateGUI()
                 ImGui::Combo("Type", reinterpret_cast<int32_t*>(&mGuiParameters.weightedAverageType), typeChoices, IM_ARRAYSIZE(typeChoices));
                 break;
             }
+            case ALGORITHM_DEPTH_PEELING: {
+                ImGui::Checkbox("Dual mode", &mGuiParameters.depthPeelingDualMode);
+                break;
+            }
             default: {
                 break;
             }
@@ -462,6 +468,9 @@ void OITDemoApp::RecordTransparency()
             break;
         case ALGORITHM_WEIGHTED_AVERAGE:
             RecordWeightedAverage();
+            break;
+        case ALGORITHM_DEPTH_PEELING:
+            RecordDepthPeeling();
             break;
         default:
             PPX_ASSERT_MSG(false, "unknown algorithm");
