@@ -16,16 +16,8 @@
 #include "Common.hlsli"
 #include "FullscreenVS.hlsli"
 
-SamplerState NearestSampler : register(CUSTOM_SAMPLER_REGISTER);
-
-Texture2D    LayerTexture0  : register(CUSTOM_TEXTURE_0_REGISTER);
-Texture2D    LayerTexture1  : register(CUSTOM_TEXTURE_1_REGISTER);
-Texture2D    LayerTexture2  : register(CUSTOM_TEXTURE_2_REGISTER);
-Texture2D    LayerTexture3  : register(CUSTOM_TEXTURE_3_REGISTER);
-Texture2D    LayerTexture4  : register(CUSTOM_TEXTURE_4_REGISTER);
-Texture2D    LayerTexture5  : register(CUSTOM_TEXTURE_5_REGISTER);
-Texture2D    LayerTexture6  : register(CUSTOM_TEXTURE_6_REGISTER);
-Texture2D    LayerTexture7  : register(CUSTOM_TEXTURE_7_REGISTER);
+SamplerState   NearestSampler : register(CUSTOM_SAMPLER_REGISTER);
+Texture2DArray LayerTextures  : register(CUSTOM_TEXTURE_0_REGISTER);
 
 void MergeColor(inout float4 outColor, float4 layerColor)
 {
@@ -36,16 +28,11 @@ void MergeColor(inout float4 outColor, float4 layerColor)
 float4 psmain(VSOutput input) : SV_TARGET
 {
     float4 color = float4(0.0f, 0.0f, 0.0f, 1.0f);
-
-    MergeColor(color, LayerTexture7.Sample(NearestSampler, input.uv));
-    MergeColor(color, LayerTexture6.Sample(NearestSampler, input.uv));
-    MergeColor(color, LayerTexture5.Sample(NearestSampler, input.uv));
-    MergeColor(color, LayerTexture4.Sample(NearestSampler, input.uv));
-    MergeColor(color, LayerTexture3.Sample(NearestSampler, input.uv));
-    MergeColor(color, LayerTexture2.Sample(NearestSampler, input.uv));
-    MergeColor(color, LayerTexture1.Sample(NearestSampler, input.uv));
-    MergeColor(color, LayerTexture0.Sample(NearestSampler, input.uv));
-
+    for(int i = 0; i < DEPTH_PEELING_LAYERS_COUNT; ++i)
+    {
+        const float textureIndex = (float)i;
+        MergeColor(color, LayerTextures.Sample(NearestSampler, float3(input.uv, textureIndex)));
+    }
     color.a = 1.0f - color.a;
     return color;
 }
