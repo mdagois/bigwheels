@@ -23,11 +23,20 @@
 #include "shaders/Common.hlsli"
 
 OITDemoApp::GuiParameters::GuiParameters()
-    : meshOpacity(1.0f), algorithmDataIndex(0), displayBackground(true), faceMode(FACE_MODE_ALL), weightedAverageType(WEIGHTED_AVERAGE_TYPE_FRAGMENT_COUNT), depthPeelingDualMode(false)
 {
+    meshOpacity        = 1.0f;
+    algorithmDataIndex = 0;
     backgroundColor[0] = 0.51f;
     backgroundColor[1] = 0.71f;
     backgroundColor[2] = 0.85f;
+    displayBackground  = true;
+    rotateMesh         = true;
+
+    faceMode = FACE_MODE_ALL;
+
+    weightedAverageType = WEIGHTED_AVERAGE_TYPE_FRAGMENT_COUNT;
+
+    depthPeelingDualMode = false;
 }
 
 void OITDemoApp::Config(ppx::ApplicationSettings& settings)
@@ -53,6 +62,9 @@ void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 
 void OITDemoApp::SetupCommon()
 {
+    mPreviousElapsedSeconds = GetElapsedSeconds();
+    mMeshAnimationSeconds = mPreviousElapsedSeconds;
+
     ////////////////////////////////////////
     // Shared
     ////////////////////////////////////////
@@ -340,7 +352,9 @@ void OITDemoApp::Setup()
 
 void OITDemoApp::Update()
 {
-    const float time = GetElapsedSeconds();
+    const float elapsedSeconds = GetElapsedSeconds();
+    const float deltaSeconds = elapsedSeconds - mPreviousElapsedSeconds;
+    mPreviousElapsedSeconds = elapsedSeconds;
 
     // Shader globals
     {
@@ -359,11 +373,15 @@ void OITDemoApp::Update()
             shaderGlobals.backgroundColor.a = 1.0f;
         }
         {
+            if(mGuiParameters.rotateMesh)
+            {
+                mMeshAnimationSeconds += deltaSeconds;
+            }
             const float4x4 M =
-                glm::rotate(time, float3(0, 0, 1)) *
-                glm::rotate(2 * time, float3(0, 1, 0)) *
-                glm::rotate(time, float3(1, 0, 0)) *
-                glm::scale(float3(2));
+                glm::rotate(mMeshAnimationSeconds, float3(0.0f, 0.0f, 1.0f)) *
+                glm::rotate(2.0f * mMeshAnimationSeconds, float3(0.0f, 1.0f, 0.0f)) *
+                glm::rotate(mMeshAnimationSeconds, float3(1.0f, 0.0f, 0.0f)) *
+                glm::scale(float3(2.0f));
             shaderGlobals.meshMVP = VP * M;
         }
         shaderGlobals.meshOpacity = mGuiParameters.meshOpacity;
@@ -384,6 +402,7 @@ void OITDemoApp::UpdateGUI()
         ImGui::Combo("Algorithm", &mGuiParameters.algorithmDataIndex, mSupportedAlgorithmNames.data(), static_cast<int>(mSupportedAlgorithmNames.size()));
 
         ImGui::SliderFloat("Opacity", &mGuiParameters.meshOpacity, 0.0f, 1.0f, "%.2f");
+        ImGui::Checkbox("Mesh rotation", &mGuiParameters.rotateMesh);
         ImGui::Checkbox("Display background", &mGuiParameters.displayBackground);
         if (mGuiParameters.displayBackground) {
             ImGui::ColorPicker3(

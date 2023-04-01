@@ -58,6 +58,7 @@ private:
         int32_t algorithmDataIndex;
         float   backgroundColor[3];
         bool    displayBackground;
+        bool    rotateMesh;
 
         // Unsorted over
         FaceMode faceMode;
@@ -97,6 +98,9 @@ private:
 
 private:
     GuiParameters mGuiParameters;
+
+    float mPreviousElapsedSeconds;
+    float mMeshAnimationSeconds;
 
     grfx::SemaphorePtr mImageAcquiredSemaphore;
     grfx::FencePtr     mImageAcquiredFence;
