@@ -81,6 +81,18 @@ generate_rules_for_shader(
     INCLUDES ${FULLSCREEN_INCLUDE_FILES}
     STAGES "ps" "vs")
 
+generate_rules_for_shader(
+    "depth_peeling_layer"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/DepthPeelingLayer.hlsl"
+    INCLUDES ${TRANSPARENCY_INCLUDE_FILES}
+    STAGES "ps" "vs")
+
+generate_rules_for_shader(
+    "depth_peeling_combine"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/DepthPeelingCombine.hlsl"
+    INCLUDES ${FULLSCREEN_INCLUDE_FILES}
+    STAGES "ps" "vs")
+
 ################################################################################
 
 generate_group_rule_for_shader(
@@ -93,6 +105,8 @@ generate_group_rule_for_shader(
     "weighted_average_fragment_count_combine"
     "weighted_average_exact_coverage_gather"
     "weighted_average_exact_coverage_combine"
+    "depth_peeling_layer"
+    "depth_peeling_combine"
     "composite"
 )
 

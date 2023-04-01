@@ -16,9 +16,9 @@
 #include "Common.hlsli"
 #include "FullscreenVS.hlsli"
 
-SamplerState NearestSampler      : register(NEAREST_SAMPLER_REGISTER);
-Texture2D    OpaqueTexture       : register(OPAQUE_TEXTURE_REGISTER);
-Texture2D    TransparencyTexture : register(TRANSPARENCY_TEXTURE_REGISTER);
+SamplerState NearestSampler      : register(CUSTOM_SAMPLER_REGISTER);
+Texture2D    OpaqueTexture       : register(CUSTOM_TEXTURE_0_REGISTER);
+Texture2D    TransparencyTexture : register(CUSTOM_TEXTURE_1_REGISTER);
 
 float4 psmain(VSOutput input) : SV_TARGET
 {

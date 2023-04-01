@@ -16,6 +16,8 @@
 
 using namespace ppx;
 
+#include "shaders/Common.hlsli"
+
 class OITDemoApp
     : public ppx::Application
 {
@@ -183,10 +185,8 @@ private:
 
     struct
     {
-        static constexpr uint32_t LAYERS_COUNT = 8;
-
-        grfx::TexturePtr  layerTextures[LAYERS_COUNT];
+        grfx::TexturePtr  layerTextures[DEPTH_PEELING_LAYERS_COUNT];
         grfx::TexturePtr  depthTextures[2];
-        grfx::DrawPassPtr drawPasses[LAYERS_COUNT];
+        grfx::DrawPassPtr drawPasses[DEPTH_PEELING_LAYERS_COUNT];
     } mDepthPeeling;
 };

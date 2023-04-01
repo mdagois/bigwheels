@@ -20,7 +20,6 @@
 
 #include "OITDemoApplication.h"
 #include "ppx/graphics_util.h"
-#include "shaders/Common.hlsli"
 
 OITDemoApp::GuiParameters::GuiParameters()
 {
@@ -242,24 +241,24 @@ void OITDemoApp::SetupCommon()
     // Descriptor
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{NEAREST_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{OPAQUE_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{TRANSPARENCY_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_1_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mCompositeDescriptorSetLayout));
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mCompositeDescriptorSetLayout, &mCompositeDescriptorSet));
 
         grfx::WriteDescriptor writes[3] = {};
 
-        writes[0].binding  = NEAREST_SAMPLER_REGISTER;
+        writes[0].binding  = CUSTOM_SAMPLER_REGISTER;
         writes[0].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
         writes[0].pSampler = mNearestSampler;
 
-        writes[1].binding    = OPAQUE_TEXTURE_REGISTER;
+        writes[1].binding    = CUSTOM_TEXTURE_0_REGISTER;
         writes[1].arrayIndex = 0;
         writes[1].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         writes[1].pImageView = mOpaquePass->GetRenderTargetTexture(0)->GetSampledImageView();
 
-        writes[2].binding    = TRANSPARENCY_TEXTURE_REGISTER;
+        writes[2].binding    = CUSTOM_TEXTURE_1_REGISTER;
         writes[2].arrayIndex = 0;
         writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         writes[2].pImageView = mTransparencyTexture->GetSampledImageView();

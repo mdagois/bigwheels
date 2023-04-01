@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "OITDemoApplication.h"
-#include "shaders/Common.hlsli"
 
 void OITDemoApp::SetupDepthPeeling()
 {
