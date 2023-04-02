@@ -47,7 +47,7 @@ The following algorithms are currently supported.
 | 0     |Unsorted over                       | Approximate       | Split draw calls for back/front faces | [PD1984]
 | 1     |Weighted sum                        | Approximate       | | [MK2007], [BM2008]
 | 2     |Weighted average                    | Approximate       | | [BM2008]
-| 3     |Weighted average with coverage      | Approximate       | | [BM2008], [MB2013]
+| 3     |Depth peeling                       | Exact             | Displayed layer control | [EC2001], [BM2008]
 
 ## Command line options
 
