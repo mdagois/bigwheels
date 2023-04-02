@@ -100,7 +100,7 @@ void OITDemoApp::RecordUnsortedOver()
     mCommandBuffer->BindGraphicsDescriptorSets(mUnsortedOver.pipelineInterface, 1, &mUnsortedOver.descriptorSet);
     mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
     mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
-    switch (mGuiParameters.faceMode) {
+    switch (mGuiParameters.unsortedOver.faceMode) {
         case FACE_MODE_ALL: {
             mCommandBuffer->BindGraphicsPipeline(mUnsortedOver.meshAllFacesPipeline);
             mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());

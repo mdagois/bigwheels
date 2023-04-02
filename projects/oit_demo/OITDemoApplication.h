@@ -56,20 +56,36 @@ private:
     {
         GuiParameters();
 
-        float   meshOpacity;
         int32_t algorithmDataIndex;
-        float   backgroundColor[3];
-        bool    displayBackground;
-        bool    rotateMesh;
 
-        // Unsorted over
-        FaceMode faceMode;
+        struct
+        {
+            float color[3];
+            bool  display;
+        } background;
 
-        // Weighted average
-        WeightAverageType weightedAverageType;
+        struct
+        {
+            float opacity;
+            bool  rotate;
+        } mesh;
 
-        // Depth peeling
-        bool depthPeelingDualMode;
+        struct
+        {
+            FaceMode faceMode;
+        } unsortedOver;
+
+        struct
+        {
+            WeightAverageType type;
+        } weightedAverage;
+
+        struct
+        {
+            int32_t startLayer;
+            int32_t layersCount;
+            bool    dualMode;
+        } depthPeeling;
     };
 
     std::vector<const char*> mSupportedAlgorithmNames;
@@ -185,8 +201,22 @@ private:
 
     struct
     {
+        grfx::SamplerPtr comparisonSampler_Greater;
+        grfx::SamplerPtr comparisonSampler_Less;
+
         grfx::TexturePtr  layerTextures[DEPTH_PEELING_LAYERS_COUNT];
-        grfx::TexturePtr  depthTextures[2];
-        grfx::DrawPassPtr drawPasses[DEPTH_PEELING_LAYERS_COUNT];
+        grfx::TexturePtr  depthTextures[DEPTH_PEELING_DEPTH_TEXTURES_COUNT];
+        grfx::DrawPassPtr layerPasses[DEPTH_PEELING_LAYERS_COUNT];
+
+        grfx::DescriptorSetLayoutPtr layerDescriptorSetLayout;
+        grfx::DescriptorSetPtr       layerDescriptorSets[DEPTH_PEELING_DEPTH_TEXTURES_COUNT];
+        grfx::PipelineInterfacePtr   layerPipelineInterface;
+        grfx::GraphicsPipelinePtr    layerPipeline_OtherLayers;
+        grfx::GraphicsPipelinePtr    layerPipeline_FirstLayer;
+
+        grfx::DescriptorSetLayoutPtr combineDescriptorSetLayout;
+        grfx::DescriptorSetPtr       combineDescriptorSet;
+        grfx::PipelineInterfacePtr   combinePipelineInterface;
+        grfx::GraphicsPipelinePtr    combinePipeline;
     } mDepthPeeling;
 };

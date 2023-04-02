@@ -16,7 +16,7 @@
 #include "Common.hlsli"
 #include "FullscreenVS.hlsli"
 
-SamplerState NearestSampler      : register(CUSTOM_SAMPLER_REGISTER);
+SamplerState NearestSampler      : register(CUSTOM_SAMPLER_0_REGISTER);
 Texture2D    OpaqueTexture       : register(CUSTOM_TEXTURE_0_REGISTER);
 Texture2D    TransparencyTexture : register(CUSTOM_TEXTURE_1_REGISTER);
 

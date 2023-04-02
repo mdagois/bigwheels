@@ -228,7 +228,7 @@ void OITDemoApp::RecordWeightedAverage()
     grfx::DrawPassPtr         gatherPass;
     grfx::GraphicsPipelinePtr gatherPipeline;
     grfx::GraphicsPipelinePtr combinePipeline;
-    switch (mGuiParameters.weightedAverageType) {
+    switch (mGuiParameters.weightedAverage.type) {
         case WEIGHTED_AVERAGE_TYPE_FRAGMENT_COUNT: {
             gatherPass      = mWeightedAverage.count.gatherPass;
             gatherPipeline  = mWeightedAverage.count.gatherPipeline;

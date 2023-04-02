@@ -23,19 +23,21 @@
 
 OITDemoApp::GuiParameters::GuiParameters()
 {
-    meshOpacity        = 1.0f;
-    algorithmDataIndex = 0;
-    backgroundColor[0] = 0.51f;
-    backgroundColor[1] = 0.71f;
-    backgroundColor[2] = 0.85f;
-    displayBackground  = true;
-    rotateMesh         = true;
+    algorithmDataIndex  = 0;
+    background.color[0] = 0.51f;
+    background.color[1] = 0.71f;
+    background.color[2] = 0.85f;
+    background.display  = true;
+    mesh.opacity        = 1.0f;
+    mesh.rotate         = true;
 
-    faceMode = FACE_MODE_ALL;
+    unsortedOver.faceMode = FACE_MODE_ALL;
 
-    weightedAverageType = WEIGHTED_AVERAGE_TYPE_FRAGMENT_COUNT;
+    weightedAverage.type = WEIGHTED_AVERAGE_TYPE_FRAGMENT_COUNT;
 
-    depthPeelingDualMode = false;
+    depthPeeling.startLayer  = 0;
+    depthPeeling.layersCount = DEPTH_PEELING_LAYERS_COUNT;
+    depthPeeling.dualMode    = false;
 }
 
 void OITDemoApp::Config(ppx::ApplicationSettings& settings)
@@ -62,7 +64,7 @@ void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 void OITDemoApp::SetupCommon()
 {
     mPreviousElapsedSeconds = GetElapsedSeconds();
-    mMeshAnimationSeconds = mPreviousElapsedSeconds;
+    mMeshAnimationSeconds   = mPreviousElapsedSeconds;
 
     ////////////////////////////////////////
     // Shared
@@ -137,7 +139,7 @@ void OITDemoApp::SetupCommon()
         createInfo.renderTargetFormats[0]       = GetSwapchain()->GetColorFormat();
         createInfo.depthStencilFormat           = grfx::FORMAT_D32_FLOAT;
         createInfo.renderTargetUsageFlags[0]    = grfx::IMAGE_USAGE_SAMPLED;
-        createInfo.depthStencilUsageFlags       = grfx::IMAGE_USAGE_SAMPLED;
+        createInfo.depthStencilUsageFlags       = grfx::IMAGE_USAGE_TRANSFER_SRC | grfx::IMAGE_USAGE_SAMPLED;
         createInfo.renderTargetInitialStates[0] = grfx::RESOURCE_STATE_SHADER_RESOURCE;
         createInfo.depthStencilInitialState     = grfx::RESOURCE_STATE_SHADER_RESOURCE;
         createInfo.renderTargetClearValues[0]   = {0, 0, 0, 0};
@@ -241,7 +243,7 @@ void OITDemoApp::SetupCommon()
     // Descriptor
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_SAMPLER_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_1_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mCompositeDescriptorSetLayout));
@@ -249,7 +251,7 @@ void OITDemoApp::SetupCommon()
 
         grfx::WriteDescriptor writes[3] = {};
 
-        writes[0].binding  = CUSTOM_SAMPLER_REGISTER;
+        writes[0].binding  = CUSTOM_SAMPLER_0_REGISTER;
         writes[0].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
         writes[0].pSampler = mNearestSampler;
 
@@ -352,8 +354,8 @@ void OITDemoApp::Setup()
 void OITDemoApp::Update()
 {
     const float elapsedSeconds = GetElapsedSeconds();
-    const float deltaSeconds = elapsedSeconds - mPreviousElapsedSeconds;
-    mPreviousElapsedSeconds = elapsedSeconds;
+    const float deltaSeconds   = elapsedSeconds - mPreviousElapsedSeconds;
+    mPreviousElapsedSeconds    = elapsedSeconds;
 
     // Shader globals
     {
@@ -366,14 +368,13 @@ void OITDemoApp::Update()
             const float4x4 M            = glm::scale(float3(20.0));
             shaderGlobals.backgroundMVP = VP * M;
 
-            shaderGlobals.backgroundColor.r = mGuiParameters.backgroundColor[0];
-            shaderGlobals.backgroundColor.g = mGuiParameters.backgroundColor[1];
-            shaderGlobals.backgroundColor.b = mGuiParameters.backgroundColor[2];
+            shaderGlobals.backgroundColor.r = mGuiParameters.background.color[0];
+            shaderGlobals.backgroundColor.g = mGuiParameters.background.color[1];
+            shaderGlobals.backgroundColor.b = mGuiParameters.background.color[2];
             shaderGlobals.backgroundColor.a = 1.0f;
         }
         {
-            if(mGuiParameters.rotateMesh)
-            {
+            if (mGuiParameters.mesh.rotate) {
                 mMeshAnimationSeconds += deltaSeconds;
             }
             const float4x4 M =
@@ -383,7 +384,11 @@ void OITDemoApp::Update()
                 glm::scale(float3(2.0f));
             shaderGlobals.meshMVP = VP * M;
         }
-        shaderGlobals.meshOpacity = mGuiParameters.meshOpacity;
+        shaderGlobals.meshOpacity = mGuiParameters.mesh.opacity;
+
+        shaderGlobals.depthPeelingFrontLayerIndex = std::max(0, mGuiParameters.depthPeeling.startLayer);
+        shaderGlobals.depthPeelingBackLayerIndex  = std::min(DEPTH_PEELING_LAYERS_COUNT - 1, mGuiParameters.depthPeeling.startLayer + mGuiParameters.depthPeeling.layersCount - 1);
+
         mShaderGlobalsBuffer->CopyFromSource(sizeof(shaderGlobals), &shaderGlobals);
     }
 
@@ -400,12 +405,12 @@ void OITDemoApp::UpdateGUI()
     if (ImGui::Begin("Parameters")) {
         ImGui::Combo("Algorithm", &mGuiParameters.algorithmDataIndex, mSupportedAlgorithmNames.data(), static_cast<int>(mSupportedAlgorithmNames.size()));
 
-        ImGui::SliderFloat("Opacity", &mGuiParameters.meshOpacity, 0.0f, 1.0f, "%.2f");
-        ImGui::Checkbox("Mesh rotation", &mGuiParameters.rotateMesh);
-        ImGui::Checkbox("Display background", &mGuiParameters.displayBackground);
-        if (mGuiParameters.displayBackground) {
+        ImGui::SliderFloat("Opacity", &mGuiParameters.mesh.opacity, 0.0f, 1.0f, "%.2f");
+        ImGui::Checkbox("Mesh rotation", &mGuiParameters.mesh.rotate);
+        ImGui::Checkbox("Display background", &mGuiParameters.background.display);
+        if (mGuiParameters.background.display) {
             ImGui::ColorPicker3(
-                "Background color", mGuiParameters.backgroundColor, ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoSmallPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_InputRGB);
+                "Background color", mGuiParameters.background.color, ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoSmallPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_InputRGB);
         }
 
         ImGui::Separator();
@@ -420,7 +425,7 @@ void OITDemoApp::UpdateGUI()
                         "Front only",
                     };
                 static_assert(IM_ARRAYSIZE(faceModeChoices) == FACE_MODES_COUNT, "Face modes count mismatch");
-                ImGui::Combo("Face draw mode", reinterpret_cast<int32_t*>(&mGuiParameters.faceMode), faceModeChoices, IM_ARRAYSIZE(faceModeChoices));
+                ImGui::Combo("Face draw mode", reinterpret_cast<int32_t*>(&mGuiParameters.unsortedOver.faceMode), faceModeChoices, IM_ARRAYSIZE(faceModeChoices));
                 break;
             }
             case ALGORITHM_WEIGHTED_AVERAGE: {
@@ -430,11 +435,13 @@ void OITDemoApp::UpdateGUI()
                         "Exact coverage",
                     };
                 static_assert(IM_ARRAYSIZE(typeChoices) == WEIGHTED_AVERAGE_TYPES_COUNT, "Weighted average types count mismatch");
-                ImGui::Combo("Type", reinterpret_cast<int32_t*>(&mGuiParameters.weightedAverageType), typeChoices, IM_ARRAYSIZE(typeChoices));
+                ImGui::Combo("Type", reinterpret_cast<int32_t*>(&mGuiParameters.weightedAverage.type), typeChoices, IM_ARRAYSIZE(typeChoices));
                 break;
             }
             case ALGORITHM_DEPTH_PEELING: {
-                ImGui::Checkbox("Dual mode", &mGuiParameters.depthPeelingDualMode);
+                ImGui::Checkbox("Dual mode", &mGuiParameters.depthPeeling.dualMode);
+                ImGui::SliderInt("First layer", &mGuiParameters.depthPeeling.startLayer, 0, DEPTH_PEELING_LAYERS_COUNT - 1);
+                ImGui::SliderInt("Layers count", &mGuiParameters.depthPeeling.layersCount, 1, DEPTH_PEELING_LAYERS_COUNT);
                 break;
             }
             default: {
@@ -458,7 +465,7 @@ void OITDemoApp::RecordOpaque()
     mCommandBuffer->SetScissors(mOpaquePass->GetScissor());
     mCommandBuffer->SetViewports(mOpaquePass->GetViewport());
 
-    if (mGuiParameters.displayBackground) {
+    if (mGuiParameters.background.display) {
         mCommandBuffer->BindGraphicsDescriptorSets(mOpaquePipelineInterface, 1, &mOpaqueDescriptorSet);
         mCommandBuffer->BindGraphicsPipeline(mOpaquePipeline);
         mCommandBuffer->BindIndexBuffer(mBackgroundMesh);
