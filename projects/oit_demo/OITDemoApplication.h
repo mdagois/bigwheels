@@ -109,9 +109,9 @@ private:
     void SetupWeightedAverage();
     void SetupDepthPeeling();
 
-    void          FillSupportedAlgorithmData();
-    void          AddSupportedAlgorithm(const char* name, Algorithm algorithm);
-    void          SetDefaultAlgorithmIndex(Algorithm defaultAlgorithm);
+    void FillSupportedAlgorithmData();
+    void ParseCommandLineOptions();
+
     Algorithm     GetSelectedAlgorithm() const;
     grfx::MeshPtr GetTransparentMesh() const;
 

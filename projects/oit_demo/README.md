@@ -49,11 +49,25 @@ The following algorithms are currently supported.
 | 2     |Weighted average                    | Approximate       | | [BM2008]
 | 3     |Depth peeling                       | Exact             | Displayed layer control | [EC2001], [BM2008]
 
+## Models
+
+The following models are available as transparent objects.
+
+| ID    | Models
+| ---   | ---
+| 0     | Monkey
+| 1     | Horse
+| 2     | Megaphone
+| 3     | Cannon
+
 ## Command line options
 
-| Option                | Description
+| Option                | Description                   | Value
 | ---                   | ---
-| algorithm <ID>        | Specify the selected algorithm when the application starts
+| algorithm <ID>        | Select the OIT algorithm      | Algorithm ID (see [Algorithms](algorithms))
+| model <ID>            | Select the model              | Model ID (see [Models](models))
+| opacity <float>       | Set the opacity of the model  | 0.0 to 1.0
+| scale <float>         | Set the scale of the model    | 1.0 to 5.0
 
 ## References
 

@@ -21,6 +21,10 @@
 #include "OITDemoApplication.h"
 #include "ppx/graphics_util.h"
 
+static constexpr float MESH_SCALE_DEFAULT = 2.0f;
+static constexpr float MESH_SCALE_MIN     = 1.0f;
+static constexpr float MESH_SCALE_MAX     = 5.0f;
+
 OITDemoApp::GuiParameters::GuiParameters()
 {
     algorithmDataIndex = 0;
@@ -32,7 +36,7 @@ OITDemoApp::GuiParameters::GuiParameters()
 
     mesh.type    = MESH_TYPE_MONKEY;
     mesh.opacity = 1.0f;
-    mesh.scale   = 2.0f;
+    mesh.scale   = MESH_SCALE_DEFAULT;
     mesh.rotate  = true;
 
     unsortedOver.faceMode = FACE_MODE_ALL;
@@ -309,13 +313,6 @@ void OITDemoApp::SetupCommon()
     }
 }
 
-void OITDemoApp::AddSupportedAlgorithm(const char* name, Algorithm algorithm)
-{
-    mSupportedAlgorithmNames.push_back(name);
-    mSupportedAlgorithmIds.push_back(algorithm);
-    PPX_ASSERT_MSG(mSupportedAlgorithmNames.size() == mSupportedAlgorithmIds.size(), "supported algorithm data is out-of-sync");
-}
-
 OITDemoApp::Algorithm OITDemoApp::GetSelectedAlgorithm() const
 {
     return mSupportedAlgorithmIds[mGuiParameters.algorithmDataIndex];
@@ -328,34 +325,42 @@ grfx::MeshPtr OITDemoApp::GetTransparentMesh() const
 
 void OITDemoApp::FillSupportedAlgorithmData()
 {
-    AddSupportedAlgorithm("Unsorted over", ALGORITHM_UNSORTED_OVER);
-    AddSupportedAlgorithm("Weighted sum", ALGORITHM_WEIGHTED_SUM);
+    const auto addSupportedAlgorithm = [this](const char* name, Algorithm algorithm) {
+        mSupportedAlgorithmNames.push_back(name);
+        mSupportedAlgorithmIds.push_back(algorithm);
+        PPX_ASSERT_MSG(mSupportedAlgorithmNames.size() == mSupportedAlgorithmIds.size(), "supported algorithm data is out-of-sync");
+    };
+
+    addSupportedAlgorithm("Unsorted over", ALGORITHM_UNSORTED_OVER);
+    addSupportedAlgorithm("Weighted sum", ALGORITHM_WEIGHTED_SUM);
     if (GetDevice()->IndependentBlendingSupported()) {
-        AddSupportedAlgorithm("Weighted average", ALGORITHM_WEIGHTED_AVERAGE);
+        addSupportedAlgorithm("Weighted average", ALGORITHM_WEIGHTED_AVERAGE);
     }
-    AddSupportedAlgorithm("Depth peeling", ALGORITHM_DEPTH_PEELING);
+    addSupportedAlgorithm("Depth peeling", ALGORITHM_DEPTH_PEELING);
 }
 
-void OITDemoApp::SetDefaultAlgorithmIndex(Algorithm defaultAlgorithm)
+void OITDemoApp::ParseCommandLineOptions()
 {
+    const CliOptions& cliOptions = GetExtraOptions();
+
+    const Algorithm defaultAlgorithm = static_cast<Algorithm>(cliOptions.GetExtraOptionValueOrDefault("algorithm", static_cast<int32_t>(ALGORITHM_UNSORTED_OVER)));
     for (size_t i = 0; i < mSupportedAlgorithmIds.size(); ++i) {
         if (mSupportedAlgorithmIds[i] == defaultAlgorithm) {
             mGuiParameters.algorithmDataIndex = static_cast<int32_t>(i);
             break;
         }
     }
+
+    mGuiParameters.mesh.type    = static_cast<MeshType>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("model", 0), 0, MESH_TYPES_COUNT - 1));
+    mGuiParameters.mesh.opacity = std::clamp(cliOptions.GetExtraOptionValueOrDefault("opacity", 1.0f), 0.0f, 1.0f);
+    mGuiParameters.mesh.scale   = std::clamp(cliOptions.GetExtraOptionValueOrDefault("scale", MESH_SCALE_DEFAULT), MESH_SCALE_MIN, MESH_SCALE_MAX);
 }
 
 void OITDemoApp::Setup()
 {
     SetupCommon();
     FillSupportedAlgorithmData();
-
-    {
-        const CliOptions& cliOptions       = GetExtraOptions();
-        const Algorithm   defaultAlgorithm = static_cast<Algorithm>(cliOptions.GetExtraOptionValueOrDefault("algorithm", static_cast<int32_t>(ALGORITHM_UNSORTED_OVER)));
-        SetDefaultAlgorithmIndex(defaultAlgorithm);
-    }
+    ParseCommandLineOptions();
 
     SetupUnsortedOver();
     SetupWeightedSum();
@@ -429,7 +434,7 @@ void OITDemoApp::UpdateGUI()
         static_assert(IM_ARRAYSIZE(meshesChoices) == MESH_TYPES_COUNT, "Mesh types count mismatch");
         ImGui::Combo("Type", reinterpret_cast<int32_t*>(&mGuiParameters.mesh.type), meshesChoices, IM_ARRAYSIZE(meshesChoices));
         ImGui::SliderFloat("Opacity", &mGuiParameters.mesh.opacity, 0.0f, 1.0f, "%.2f");
-        ImGui::SliderFloat("Scale", &mGuiParameters.mesh.scale, 2.0f, 5.0f, "%.2f");
+        ImGui::SliderFloat("Scale", &mGuiParameters.mesh.scale, MESH_SCALE_MIN, MESH_SCALE_MAX, "%.2f");
         ImGui::Checkbox("Rotation", &mGuiParameters.mesh.rotate);
 
         ImGui::Separator();
