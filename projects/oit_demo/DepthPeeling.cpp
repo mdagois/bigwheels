@@ -148,7 +148,7 @@ void OITDemoApp::SetupDepthPeeling()
 
         grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
         gpCreateInfo.vertexInputState.bindingCount      = 1;
-        gpCreateInfo.vertexInputState.bindings[0]       = mMonkeyMesh->GetDerivedVertexBindings()[0];
+        gpCreateInfo.vertexInputState.bindings[0]       = GetTransparentMesh()->GetDerivedVertexBindings()[0];
         gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
         gpCreateInfo.cullMode                           = grfx::CULL_MODE_NONE;
@@ -268,9 +268,9 @@ void OITDemoApp::RecordDepthPeeling()
 
         mCommandBuffer->BindGraphicsDescriptorSets(mDepthPeeling.layerPipelineInterface, 1, &mDepthPeeling.layerDescriptorSets[i % DEPTH_PEELING_DEPTH_TEXTURES_COUNT]);
         mCommandBuffer->BindGraphicsPipeline(i == 0 ? mDepthPeeling.layerPipeline_FirstLayer : mDepthPeeling.layerPipeline_OtherLayers);
-        mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
-        mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
-        mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+        mCommandBuffer->BindIndexBuffer(GetTransparentMesh());
+        mCommandBuffer->BindVertexBuffers(GetTransparentMesh());
+        mCommandBuffer->DrawIndexed(GetTransparentMesh()->GetIndexCount());
 
         mCommandBuffer->EndRenderPass();
         mCommandBuffer->TransitionImageLayout(

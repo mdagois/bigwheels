@@ -96,7 +96,7 @@ void OITDemoApp::SetupWeightedAverage()
         grfx::ShaderModulePtr            VS, PS;
         grfx::GraphicsPipelineCreateInfo gpCreateInfo   = {};
         gpCreateInfo.vertexInputState.bindingCount      = 1;
-        gpCreateInfo.vertexInputState.bindings[0]       = mMonkeyMesh->GetDerivedVertexBindings()[0];
+        gpCreateInfo.vertexInputState.bindings[0]       = GetTransparentMesh()->GetDerivedVertexBindings()[0];
         gpCreateInfo.inputAssemblyState.topology        = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         gpCreateInfo.rasterState.polygonMode            = grfx::POLYGON_MODE_FILL;
         gpCreateInfo.rasterState.cullMode               = grfx::CULL_MODE_NONE;
@@ -262,9 +262,9 @@ void OITDemoApp::RecordWeightedAverage()
 
         mCommandBuffer->BindGraphicsDescriptorSets(mWeightedAverage.gatherPipelineInterface, 1, &mWeightedAverage.gatherDescriptorSet);
         mCommandBuffer->BindGraphicsPipeline(gatherPipeline);
-        mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
-        mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
-        mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+        mCommandBuffer->BindIndexBuffer(GetTransparentMesh());
+        mCommandBuffer->BindVertexBuffers(GetTransparentMesh());
+        mCommandBuffer->DrawIndexed(GetTransparentMesh()->GetIndexCount());
 
         mCommandBuffer->EndRenderPass();
         mCommandBuffer->TransitionImageLayout(

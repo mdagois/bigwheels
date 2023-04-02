@@ -23,13 +23,17 @@
 
 OITDemoApp::GuiParameters::GuiParameters()
 {
-    algorithmDataIndex  = 0;
+    algorithmDataIndex = 0;
+
     background.color[0] = 0.51f;
     background.color[1] = 0.71f;
     background.color[2] = 0.85f;
     background.display  = true;
-    mesh.opacity        = 1.0f;
-    mesh.rotate         = true;
+
+    mesh.type    = MESH_TYPE_MONKEY;
+    mesh.opacity = 1.0f;
+    mesh.scale   = 2.0f;
+    mesh.rotate  = true;
 
     unsortedOver.faceMode = FACE_MODE_ALL;
 
@@ -114,7 +118,10 @@ void OITDemoApp::SetupCommon()
         grfx::QueuePtr queue   = this->GetGraphicsQueue();
         TriMeshOptions options = TriMeshOptions().Indices();
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/cube.obj"), &mBackgroundMesh, options));
-        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/monkey.obj"), &mMonkeyMesh, options));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/monkey.obj"), &mTransparentMeshes[MESH_TYPE_MONKEY], options));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("oit_demo/models/horse.obj"), &mTransparentMeshes[MESH_TYPE_HORSE], options));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("oit_demo/models/megaphone.obj"), &mTransparentMeshes[MESH_TYPE_MEGAPHONE], options));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("oit_demo/models/cannon.obj"), &mTransparentMeshes[MESH_TYPE_CANNON], options));
     }
 
     // Shader globals
@@ -314,6 +321,11 @@ OITDemoApp::Algorithm OITDemoApp::GetSelectedAlgorithm() const
     return mSupportedAlgorithmIds[mGuiParameters.algorithmDataIndex];
 }
 
+grfx::MeshPtr OITDemoApp::GetTransparentMesh() const
+{
+    return mTransparentMeshes[mGuiParameters.mesh.type];
+}
+
 void OITDemoApp::FillSupportedAlgorithmData()
 {
     AddSupportedAlgorithm("Unsorted over", ALGORITHM_UNSORTED_OVER);
@@ -381,7 +393,7 @@ void OITDemoApp::Update()
                 glm::rotate(mMeshAnimationSeconds, float3(0.0f, 0.0f, 1.0f)) *
                 glm::rotate(2.0f * mMeshAnimationSeconds, float3(0.0f, 1.0f, 0.0f)) *
                 glm::rotate(mMeshAnimationSeconds, float3(1.0f, 0.0f, 0.0f)) *
-                glm::scale(float3(2.0f));
+                glm::scale(float3(mGuiParameters.mesh.scale));
             shaderGlobals.meshMVP = VP * M;
         }
         shaderGlobals.meshOpacity = mGuiParameters.mesh.opacity;
@@ -405,15 +417,31 @@ void OITDemoApp::UpdateGUI()
     if (ImGui::Begin("Parameters")) {
         ImGui::Combo("Algorithm", &mGuiParameters.algorithmDataIndex, mSupportedAlgorithmNames.data(), static_cast<int>(mSupportedAlgorithmNames.size()));
 
+        ImGui::Separator();
+        ImGui::Text("Mesh");
+        const char* meshesChoices[] =
+            {
+                "Monkey",
+                "Horse",
+                "Megaphone",
+                "Cannon",
+            };
+        static_assert(IM_ARRAYSIZE(meshesChoices) == MESH_TYPES_COUNT, "Mesh types count mismatch");
+        ImGui::Combo("Type", reinterpret_cast<int32_t*>(&mGuiParameters.mesh.type), meshesChoices, IM_ARRAYSIZE(meshesChoices));
         ImGui::SliderFloat("Opacity", &mGuiParameters.mesh.opacity, 0.0f, 1.0f, "%.2f");
-        ImGui::Checkbox("Mesh rotation", &mGuiParameters.mesh.rotate);
-        ImGui::Checkbox("Display background", &mGuiParameters.background.display);
+        ImGui::SliderFloat("Scale", &mGuiParameters.mesh.scale, 2.0f, 5.0f, "%.2f");
+        ImGui::Checkbox("Rotation", &mGuiParameters.mesh.rotate);
+
+        ImGui::Separator();
+        ImGui::Text("Background");
+        ImGui::Checkbox("Display", &mGuiParameters.background.display);
         if (mGuiParameters.background.display) {
             ImGui::ColorPicker3(
-                "Background color", mGuiParameters.background.color, ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoSmallPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_InputRGB);
+                "Color", mGuiParameters.background.color, ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoSmallPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_InputRGB);
         }
 
         ImGui::Separator();
+        ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
 
         switch (GetSelectedAlgorithm()) {
             case ALGORITHM_UNSORTED_OVER: {

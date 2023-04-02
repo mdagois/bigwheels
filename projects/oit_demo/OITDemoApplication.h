@@ -36,6 +36,15 @@ private:
         ALGORITHMS_COUNT,
     };
 
+    enum MeshType : int32_t
+    {
+        MESH_TYPE_MONKEY,
+        MESH_TYPE_HORSE,
+        MESH_TYPE_MEGAPHONE,
+        MESH_TYPE_CANNON,
+        MESH_TYPES_COUNT,
+    };
+
     enum FaceMode : int32_t
     {
         FACE_MODE_ALL,
@@ -66,8 +75,10 @@ private:
 
         struct
         {
-            float opacity;
-            bool  rotate;
+            MeshType type;
+            float    opacity;
+            float    scale;
+            bool     rotate;
         } mesh;
 
         struct
@@ -98,10 +109,11 @@ private:
     void SetupWeightedAverage();
     void SetupDepthPeeling();
 
-    void      FillSupportedAlgorithmData();
-    void      AddSupportedAlgorithm(const char* name, Algorithm algorithm);
-    void      SetDefaultAlgorithmIndex(Algorithm defaultAlgorithm);
-    Algorithm GetSelectedAlgorithm() const;
+    void          FillSupportedAlgorithmData();
+    void          AddSupportedAlgorithm(const char* name, Algorithm algorithm);
+    void          SetDefaultAlgorithmIndex(Algorithm defaultAlgorithm);
+    Algorithm     GetSelectedAlgorithm() const;
+    grfx::MeshPtr GetTransparentMesh() const;
 
     void Update();
     void UpdateGUI();
@@ -131,7 +143,7 @@ private:
     grfx::SamplerPtr mNearestSampler;
 
     grfx::MeshPtr mBackgroundMesh;
-    grfx::MeshPtr mMonkeyMesh;
+    grfx::MeshPtr mTransparentMeshes[MESH_TYPES_COUNT];
 
     grfx::BufferPtr mShaderGlobalsBuffer;
 
