@@ -39,5 +39,5 @@ float4 psmain(VSOutput input) : SV_TARGET
         clip(compareResult - 0.5f);
     }
 #endif
-    return float4(input.color * g_Globals.meshOpacity, g_Globals.meshOpacity);
+    return float4(input.color, g_Globals.meshOpacity);
 }
