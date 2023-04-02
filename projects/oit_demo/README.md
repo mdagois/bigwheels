@@ -43,7 +43,7 @@ Algorithms are kept separated on purpose, so that each algorithm can be studied 
 The following algorithms are currently supported.
 
 |ID    |Algorithm                           |Type              |Additional options                    |References
-|---   |---                                 |---               |---                                   |---
+|:---  |:---                                |:---              |:---                                  |:---
 |0     |Unsorted over                       |Approximate       |Split draw calls for back/front faces |[PD1984]
 |1     |Weighted sum                        |Approximate       |                                      |[MK2007], [BM2008]
 |2     |Weighted average                    |Approximate       |                                      |[BM2008]
@@ -54,7 +54,7 @@ The following algorithms are currently supported.
 The following models are available as transparent objects.
 
 |ID    |Models
-|---   |---
+|:---  |:---
 |0     |Monkey
 |1     |Horse
 |2     |Megaphone
@@ -63,7 +63,7 @@ The following models are available as transparent objects.
 ## Command line options
 
 |Option                |Description                   |Value
-|---                   |---                           |---
+|:---                  |:---                          |:---
 |algorithm <ID>        |Select the OIT algorithm      |Algorithm ID (see [Algorithms](algorithms))
 |model <ID>            |Select the model              |Model ID (see [Models](models))
 |opacity <float>       |Set the opacity of the model  |0.0 to 1.0
