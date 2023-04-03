@@ -446,10 +446,10 @@ void OITDemoApp::UpdateGUI()
         }
 
         ImGui::Separator();
-        ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
 
         switch (GetSelectedAlgorithm()) {
             case ALGORITHM_UNSORTED_OVER: {
+                ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
                 const char* faceModeChoices[] =
                     {
                         "All",
@@ -458,23 +458,25 @@ void OITDemoApp::UpdateGUI()
                         "Front only",
                     };
                 static_assert(IM_ARRAYSIZE(faceModeChoices) == FACE_MODES_COUNT, "Face modes count mismatch");
-                ImGui::Combo("Face draw mode", reinterpret_cast<int32_t*>(&mGuiParameters.unsortedOver.faceMode), faceModeChoices, IM_ARRAYSIZE(faceModeChoices));
+                ImGui::Combo("UO face mode", reinterpret_cast<int32_t*>(&mGuiParameters.unsortedOver.faceMode), faceModeChoices, IM_ARRAYSIZE(faceModeChoices));
                 break;
             }
             case ALGORITHM_WEIGHTED_AVERAGE: {
+                ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
                 const char* typeChoices[] =
                     {
                         "Fragment count",
                         "Exact coverage",
                     };
                 static_assert(IM_ARRAYSIZE(typeChoices) == WEIGHTED_AVERAGE_TYPES_COUNT, "Weighted average types count mismatch");
-                ImGui::Combo("Type", reinterpret_cast<int32_t*>(&mGuiParameters.weightedAverage.type), typeChoices, IM_ARRAYSIZE(typeChoices));
+                ImGui::Combo("WA Type", reinterpret_cast<int32_t*>(&mGuiParameters.weightedAverage.type), typeChoices, IM_ARRAYSIZE(typeChoices));
                 break;
             }
             case ALGORITHM_DEPTH_PEELING: {
-                ImGui::Checkbox("Dual mode", &mGuiParameters.depthPeeling.dualMode);
-                ImGui::SliderInt("First layer", &mGuiParameters.depthPeeling.startLayer, 0, DEPTH_PEELING_LAYERS_COUNT - 1);
-                ImGui::SliderInt("Layers count", &mGuiParameters.depthPeeling.layersCount, 1, DEPTH_PEELING_LAYERS_COUNT);
+                ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
+                ImGui::Checkbox("DP dual mode", &mGuiParameters.depthPeeling.dualMode);
+                ImGui::SliderInt("DP first layer", &mGuiParameters.depthPeeling.startLayer, 0, DEPTH_PEELING_LAYERS_COUNT - 1);
+                ImGui::SliderInt("DP layers count", &mGuiParameters.depthPeeling.layersCount, 1, DEPTH_PEELING_LAYERS_COUNT);
                 break;
             }
             default: {

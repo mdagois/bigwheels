@@ -159,25 +159,30 @@ void OITDemoApp::SetupWeightedAverage()
     // Descriptor
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_SAMPLER_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_1_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mWeightedAverage.combineDescriptorSetLayout));
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mWeightedAverage.combineDescriptorSetLayout, &mWeightedAverage.combineDescriptorSet));
 
-        grfx::WriteDescriptor writes[2] = {};
+        grfx::WriteDescriptor writes[3] = {};
 
-        writes[0].binding    = CUSTOM_TEXTURE_0_REGISTER;
-        writes[0].arrayIndex = 0;
-        writes[0].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        writes[0].pImageView = mWeightedAverage.colorTexture->GetSampledImageView();
+        writes[0].binding  = CUSTOM_SAMPLER_0_REGISTER;
+        writes[0].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
+        writes[0].pSampler = mNearestSampler;
 
-        writes[1].binding    = CUSTOM_TEXTURE_1_REGISTER;
+        writes[1].binding    = CUSTOM_TEXTURE_0_REGISTER;
         writes[1].arrayIndex = 0;
         writes[1].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        writes[1].pImageView = mWeightedAverage.extraTexture->GetSampledImageView();
+        writes[1].pImageView = mWeightedAverage.colorTexture->GetSampledImageView();
 
-        PPX_CHECKED_CALL(mWeightedAverage.combineDescriptorSet->UpdateDescriptors(2, writes));
+        writes[2].binding    = CUSTOM_TEXTURE_1_REGISTER;
+        writes[2].arrayIndex = 0;
+        writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        writes[2].pImageView = mWeightedAverage.extraTexture->GetSampledImageView();
+
+        PPX_CHECKED_CALL(mWeightedAverage.combineDescriptorSet->UpdateDescriptors(3, writes));
     }
 
     // Pipeline

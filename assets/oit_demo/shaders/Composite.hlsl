@@ -24,8 +24,7 @@ float4 psmain(VSOutput input) : SV_TARGET
 {
     const float3 opaqueColor = OpaqueTexture.Sample(NearestSampler, input.uv).rgb;
 
-    const int3 texelCoord = int3(input.position.xy, 0);
-    const float4 transparencySample = TransparencyTexture.Load(texelCoord);
+    const float4 transparencySample = TransparencyTexture.Sample(NearestSampler, input.uv);
     const float3 transparencyColor  = transparencySample.rgb;
     const float  coverage           = transparencySample.a;
 
