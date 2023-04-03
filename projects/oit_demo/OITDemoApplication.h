@@ -213,9 +213,6 @@ private:
 
     struct
     {
-        grfx::SamplerPtr comparisonSampler_Greater;
-        grfx::SamplerPtr comparisonSampler_Less;
-
         grfx::TexturePtr  layerTextures[DEPTH_PEELING_LAYERS_COUNT];
         grfx::TexturePtr  depthTextures[DEPTH_PEELING_DEPTH_TEXTURES_COUNT];
         grfx::DrawPassPtr layerPasses[DEPTH_PEELING_LAYERS_COUNT];

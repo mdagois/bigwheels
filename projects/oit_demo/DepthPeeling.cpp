@@ -16,21 +16,6 @@
 
 void OITDemoApp::SetupDepthPeeling()
 {
-    // Sampler
-    {
-        grfx::SamplerCreateInfo createInfo = {};
-        createInfo.magFilter               = grfx::FILTER_NEAREST;
-        createInfo.minFilter               = grfx::FILTER_NEAREST;
-        createInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_NEAREST;
-        createInfo.compareEnable           = true;
-
-        createInfo.compareOp = grfx::COMPARE_OP_GREATER;
-        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&createInfo, &mDepthPeeling.comparisonSampler_Greater));
-
-        createInfo.compareOp = grfx::COMPARE_OP_LESS;
-        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&createInfo, &mDepthPeeling.comparisonSampler_Less));
-    }
-
     // Layer texture
     {
         grfx::TextureCreateInfo createInfo         = {};
@@ -100,7 +85,6 @@ void OITDemoApp::SetupDepthPeeling()
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_SAMPLER_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_SAMPLER_1_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_1_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mDepthPeeling.layerDescriptorSetLayout));
@@ -108,7 +92,7 @@ void OITDemoApp::SetupDepthPeeling()
         for (uint32_t i = 0; i < DEPTH_PEELING_DEPTH_TEXTURES_COUNT; ++i) {
             PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mDepthPeeling.layerDescriptorSetLayout, &mDepthPeeling.layerDescriptorSets[i]));
 
-            grfx::WriteDescriptor writes[5] = {};
+            grfx::WriteDescriptor writes[4] = {};
 
             writes[0].binding      = SHADER_GLOBALS_REGISTER;
             writes[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -118,23 +102,19 @@ void OITDemoApp::SetupDepthPeeling()
 
             writes[1].binding  = CUSTOM_SAMPLER_0_REGISTER;
             writes[1].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
-            writes[1].pSampler = mDepthPeeling.comparisonSampler_Greater;
+            writes[1].pSampler = mNearestSampler;
 
-            writes[2].binding  = CUSTOM_SAMPLER_1_REGISTER;
-            writes[2].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
-            writes[2].pSampler = mDepthPeeling.comparisonSampler_Less;
+            writes[2].binding    = CUSTOM_TEXTURE_0_REGISTER;
+            writes[2].arrayIndex = 0;
+            writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            writes[2].pImageView = mOpaquePass->GetDepthStencilTexture()->GetSampledImageView();
 
-            writes[3].binding    = CUSTOM_TEXTURE_0_REGISTER;
+            writes[3].binding    = CUSTOM_TEXTURE_1_REGISTER;
             writes[3].arrayIndex = 0;
             writes[3].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            writes[3].pImageView = mOpaquePass->GetDepthStencilTexture()->GetSampledImageView();
+            writes[3].pImageView = mDepthPeeling.depthTextures[(i + 1) % DEPTH_PEELING_DEPTH_TEXTURES_COUNT]->GetSampledImageView();
 
-            writes[4].binding    = CUSTOM_TEXTURE_1_REGISTER;
-            writes[4].arrayIndex = 0;
-            writes[4].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            writes[4].pImageView = mDepthPeeling.depthTextures[(i + 1) % DEPTH_PEELING_DEPTH_TEXTURES_COUNT]->GetSampledImageView();
-
-            PPX_CHECKED_CALL(mDepthPeeling.layerDescriptorSets[i]->UpdateDescriptors(5, writes));
+            PPX_CHECKED_CALL(mDepthPeeling.layerDescriptorSets[i]->UpdateDescriptors(4, writes));
         }
     }
 
