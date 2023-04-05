@@ -33,7 +33,7 @@ The A channel must specify the coverage, i.e. how much of the background is obsc
 
 The formula used to compute the final color during the composite pass is:
 
-    final_color = transparent_color + (1 - coverage) * opaque_color
+    final_color = transparent_RGB + (1 - coverage) * opaque_RGB
 
 ## Algorithms
 
@@ -61,6 +61,8 @@ The following meshes are available as transparent objects.
 |3     |Cannon
 
 ## Command line options
+
+The following command line options are available.
 
 |Option                |Description                                   |Algorithm           |Value
 |:---                  |:---                                          |:---                |:---
