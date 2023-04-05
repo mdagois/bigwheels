@@ -15,8 +15,9 @@
 // TODO Several meshes on top of each other (including opaque ones)
 // TODO Choice of cubemaps as background
 // TODO Add WeightedAverage with depth
-// TODO Add Depth peeling (basic and dual)
+// TODO Add Dual depth peeling
 // TODO Add buffer-based algorithms
+// TODO Add split windows support to compare algorithms
 
 #include "OITDemoApplication.h"
 #include "ppx/graphics_util.h"
@@ -24,29 +25,6 @@
 static constexpr float MESH_SCALE_DEFAULT = 2.0f;
 static constexpr float MESH_SCALE_MIN     = 1.0f;
 static constexpr float MESH_SCALE_MAX     = 5.0f;
-
-OITDemoApp::GuiParameters::GuiParameters()
-{
-    algorithmDataIndex = 0;
-
-    background.color[0] = 0.51f;
-    background.color[1] = 0.71f;
-    background.color[2] = 0.85f;
-    background.display  = true;
-
-    mesh.type    = MESH_TYPE_MONKEY;
-    mesh.opacity = 1.0f;
-    mesh.scale   = MESH_SCALE_DEFAULT;
-    mesh.rotate  = true;
-
-    unsortedOver.faceMode = FACE_MODE_ALL;
-
-    weightedAverage.type = WEIGHTED_AVERAGE_TYPE_FRAGMENT_COUNT;
-
-    depthPeeling.startLayer  = 0;
-    depthPeeling.layersCount = DEPTH_PEELING_LAYERS_COUNT;
-    depthPeeling.dualMode    = false;
-}
 
 void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 {
@@ -351,9 +329,22 @@ void OITDemoApp::ParseCommandLineOptions()
         }
     }
 
-    mGuiParameters.mesh.type    = static_cast<MeshType>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("model", 0), 0, MESH_TYPES_COUNT - 1));
-    mGuiParameters.mesh.opacity = std::clamp(cliOptions.GetExtraOptionValueOrDefault("opacity", 1.0f), 0.0f, 1.0f);
-    mGuiParameters.mesh.scale   = std::clamp(cliOptions.GetExtraOptionValueOrDefault("scale", MESH_SCALE_DEFAULT), MESH_SCALE_MIN, MESH_SCALE_MAX);
+    mGuiParameters.background.display = cliOptions.GetExtraOptionValueOrDefault("bg_display", true);
+    mGuiParameters.background.color[0] = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bg_red", 0.51f), 0.0f, 1.0f);
+    mGuiParameters.background.color[1] = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bg_green", 0.71f), 0.0f, 1.0f);
+    mGuiParameters.background.color[2] = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bg_blue", 0.85f), 0.0f, 1.0f);
+
+    mGuiParameters.mesh.type    = static_cast<MeshType>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("mo_mesh", 0), 0, MESH_TYPES_COUNT - 1));
+    mGuiParameters.mesh.opacity = std::clamp(cliOptions.GetExtraOptionValueOrDefault("mo_opacity", 1.0f), 0.0f, 1.0f);
+    mGuiParameters.mesh.scale   = std::clamp(cliOptions.GetExtraOptionValueOrDefault("mo_scale", MESH_SCALE_DEFAULT), MESH_SCALE_MIN, MESH_SCALE_MAX);
+    mGuiParameters.mesh.auto_rotate   = cliOptions.GetExtraOptionValueOrDefault("mo_auto_rotate", true);
+
+    mGuiParameters.unsortedOver.faceMode = static_cast<FaceMode>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("uo_face_mode", 0), 0, FACE_MODES_COUNT - 1));
+
+    mGuiParameters.weightedAverage.type = static_cast<WeightAverageType>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("wa_type", 0), 0, WEIGHTED_AVERAGE_TYPES_COUNT - 1));
+
+    mGuiParameters.depthPeeling.startLayer = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_start_layer", 0), 0, DEPTH_PEELING_LAYERS_COUNT - 1);
+    mGuiParameters.depthPeeling.layersCount = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_layers_count", DEPTH_PEELING_LAYERS_COUNT), 1, DEPTH_PEELING_LAYERS_COUNT);
 }
 
 void OITDemoApp::Setup()
@@ -391,7 +382,7 @@ void OITDemoApp::Update()
             shaderGlobals.backgroundColor.a = 1.0f;
         }
         {
-            if (mGuiParameters.mesh.rotate) {
+            if (mGuiParameters.mesh.auto_rotate) {
                 mMeshAnimationSeconds += deltaSeconds;
             }
             const float4x4 M =
@@ -423,7 +414,7 @@ void OITDemoApp::UpdateGUI()
         ImGui::Combo("Algorithm", &mGuiParameters.algorithmDataIndex, mSupportedAlgorithmNames.data(), static_cast<int>(mSupportedAlgorithmNames.size()));
 
         ImGui::Separator();
-        ImGui::Text("Mesh");
+        ImGui::Text("Model");
         const char* meshesChoices[] =
             {
                 "Monkey",
@@ -432,17 +423,17 @@ void OITDemoApp::UpdateGUI()
                 "Cannon",
             };
         static_assert(IM_ARRAYSIZE(meshesChoices) == MESH_TYPES_COUNT, "Mesh types count mismatch");
-        ImGui::Combo("Type", reinterpret_cast<int32_t*>(&mGuiParameters.mesh.type), meshesChoices, IM_ARRAYSIZE(meshesChoices));
+        ImGui::Combo("Mesh", reinterpret_cast<int32_t*>(&mGuiParameters.mesh.type), meshesChoices, IM_ARRAYSIZE(meshesChoices));
         ImGui::SliderFloat("Opacity", &mGuiParameters.mesh.opacity, 0.0f, 1.0f, "%.2f");
         ImGui::SliderFloat("Scale", &mGuiParameters.mesh.scale, MESH_SCALE_MIN, MESH_SCALE_MAX, "%.2f");
-        ImGui::Checkbox("Rotation", &mGuiParameters.mesh.rotate);
+        ImGui::Checkbox("Auto rotate", &mGuiParameters.mesh.auto_rotate);
 
         ImGui::Separator();
         ImGui::Text("Background");
-        ImGui::Checkbox("Display", &mGuiParameters.background.display);
+        ImGui::Checkbox("BG display", &mGuiParameters.background.display);
         if (mGuiParameters.background.display) {
             ImGui::ColorPicker3(
-                "Color", mGuiParameters.background.color, ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoSmallPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_InputRGB);
+                "BG color", mGuiParameters.background.color, ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoSmallPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_InputRGB);
         }
 
         ImGui::Separator();
@@ -474,7 +465,6 @@ void OITDemoApp::UpdateGUI()
             }
             case ALGORITHM_DEPTH_PEELING: {
                 ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
-                ImGui::Checkbox("DP dual mode", &mGuiParameters.depthPeeling.dualMode);
                 ImGui::SliderInt("DP first layer", &mGuiParameters.depthPeeling.startLayer, 0, DEPTH_PEELING_LAYERS_COUNT - 1);
                 ImGui::SliderInt("DP layers count", &mGuiParameters.depthPeeling.layersCount, 1, DEPTH_PEELING_LAYERS_COUNT);
                 break;

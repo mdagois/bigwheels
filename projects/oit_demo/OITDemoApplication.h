@@ -63,8 +63,6 @@ private:
 
     struct GuiParameters
     {
-        GuiParameters();
-
         int32_t algorithmDataIndex;
 
         struct
@@ -78,7 +76,7 @@ private:
             MeshType type;
             float    opacity;
             float    scale;
-            bool     rotate;
+            bool     auto_rotate;
         } mesh;
 
         struct
@@ -95,7 +93,6 @@ private:
         {
             int32_t startLayer;
             int32_t layersCount;
-            bool    dualMode;
         } depthPeeling;
     };
 
@@ -127,7 +124,7 @@ private:
     void RecordComposite(grfx::RenderPassPtr renderPass);
 
 private:
-    GuiParameters mGuiParameters;
+    GuiParameters mGuiParameters = {};
 
     float mPreviousElapsedSeconds;
     float mMeshAnimationSeconds;
