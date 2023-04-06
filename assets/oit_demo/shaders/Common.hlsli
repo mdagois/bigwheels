@@ -35,19 +35,11 @@
 #define DEPTH_PEELING_LAYERS_COUNT          8
 #define DEPTH_PEELING_DEPTH_TEXTURES_COUNT  2
 
-<<<<<<< HEAD
-=======
-#define meshOpacity                     meshParameters.x
-#define depthPeelingFrontLayerIndex     depthPeelingParameters.x
-#define depthPeelingBackLayerIndex      depthPeelingParameters.y
-
->>>>>>> 5b79ad1 (Added depth peeling and mesh selection to the OIT sample + miscellaneous change)
 struct ShaderGlobals
 {
     float4x4 backgroundMVP;
     float4   backgroundColor;
     float4x4 meshMVP;
-<<<<<<< HEAD
     float    meshOpacity;
     float    meshParametersUnused0;
     float    meshParametersUnused1;
@@ -56,10 +48,6 @@ struct ShaderGlobals
     int      depthPeelingBackLayerIndex;
     int      depthPeelingParametersUnused0;
     int      depthPeelingParametersUnused1;
-=======
-    float4   meshParameters;
-    int4     depthPeelingParameters;
->>>>>>> 5b79ad1 (Added depth peeling and mesh selection to the OIT sample + miscellaneous change)
 };
 
 #if defined(IS_SHADER)
