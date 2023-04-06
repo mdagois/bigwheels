@@ -316,6 +316,7 @@ void OITDemoApp::FillSupportedAlgorithmData()
         addSupportedAlgorithm("Weighted average", ALGORITHM_WEIGHTED_AVERAGE);
     }
     addSupportedAlgorithm("Depth peeling", ALGORITHM_DEPTH_PEELING);
+    addSupportedAlgorithm("Buffer", ALGORITHM_BUFFER);
 }
 
 void OITDemoApp::ParseCommandLineOptions()
@@ -358,6 +359,7 @@ void OITDemoApp::Setup()
     SetupWeightedSum();
     SetupWeightedAverage();
     SetupDepthPeeling();
+    SetupBuffer();
 }
 
 void OITDemoApp::Update()
@@ -522,6 +524,9 @@ void OITDemoApp::RecordTransparency()
             break;
         case ALGORITHM_DEPTH_PEELING:
             RecordDepthPeeling();
+            break;
+        case ALGORITHM_BUFFER:
+            RecordBuffer();
             break;
         default:
             PPX_ASSERT_MSG(false, "unknown algorithm");

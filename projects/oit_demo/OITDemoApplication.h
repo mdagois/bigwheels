@@ -33,6 +33,7 @@ private:
         ALGORITHM_WEIGHTED_SUM,
         ALGORITHM_WEIGHTED_AVERAGE,
         ALGORITHM_DEPTH_PEELING,
+        ALGORITHM_BUFFER,
         ALGORITHMS_COUNT,
     };
 
@@ -105,6 +106,7 @@ private:
     void SetupWeightedSum();
     void SetupWeightedAverage();
     void SetupDepthPeeling();
+    void SetupBuffer();
 
     void FillSupportedAlgorithmData();
     void ParseCommandLineOptions();
@@ -120,6 +122,7 @@ private:
     void RecordWeightedSum();
     void RecordWeightedAverage();
     void RecordDepthPeeling();
+    void RecordBuffer();
     void RecordTransparency();
     void RecordComposite(grfx::RenderPassPtr renderPass);
 
