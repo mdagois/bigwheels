@@ -104,14 +104,14 @@ generate_rules_for_shader(
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
-    "buffer_fixed_array_gather"
-    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/BufferFixedArrayGather.hlsl"
+    "buffer_buckets_gather"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/BufferBucketsGather.hlsl"
     INCLUDES ${TRANSPARENCY_INCLUDE_FILES}
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
-    "buffer_fixed_array_combine"
-    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/BufferFixedArrayCombine.hlsl"
+    "buffer_buckets_combine"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/BufferBucketsCombine.hlsl"
     INCLUDES ${FULLSCREEN_INCLUDE_FILES}
     STAGES "ps" "vs")
 
@@ -130,8 +130,8 @@ generate_group_rule_for_shader(
     "depth_peeling_layer_first"
     "depth_peeling_layer_others"
     "depth_peeling_combine"
-    "buffer_fixed_array_gather"
-    "buffer_fixed_array_combine"
+    "buffer_buckets_gather"
+    "buffer_buckets_combine"
     "composite"
 )
 

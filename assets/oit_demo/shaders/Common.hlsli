@@ -35,6 +35,8 @@
 #define DEPTH_PEELING_LAYERS_COUNT          8
 #define DEPTH_PEELING_DEPTH_TEXTURES_COUNT  2
 
+#define BUFFER_BUCKET_SIZE_PER_PIXEL        8
+
 struct ShaderGlobals
 {
     float4x4 backgroundMVP;
