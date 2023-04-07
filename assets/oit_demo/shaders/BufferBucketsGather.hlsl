@@ -16,6 +16,24 @@
 #include "Common.hlsli"
 #include "TransparencyVS.hlsli"
 
+RWTexture2D<uint>                     CountTexture : register(CUSTOM_UAV_0_REGISTER);
+RWStructuredBuffer<BufferBucketEntry> EntryBuffer  : register(CUSTOM_UAV_1_REGISTER);
+
 void psmain(VSOutput input)
 {
+    const uint2 bucketIndex = (uint2)input.position.xy;
+    uint nextBucketEntryIndex = 0;
+    InterlockedAdd(CountTexture[bucketIndex], 1U, nextBucketEntryIndex);
+
+    if(nextBucketEntryIndex >= BUFFER_BUCKET_SIZE_PER_PIXEL)
+    {
+        clip(-1.0f);
+    }
+
+    float2 countTextureDimension = (float2)0;
+    CountTexture.GetDimensions(countTextureDimension.x, countTextureDimension.y);
+
+    const uint entryIndex = (((bucketIndex.y * (uint)countTextureDimension.x) + bucketIndex.x) * BUFFER_BUCKET_SIZE_PER_PIXEL) + nextBucketEntryIndex;
+    EntryBuffer[entryIndex].color = float4(input.color, g_Globals.meshOpacity);
+    EntryBuffer[entryIndex].depth = input.position.z;
 }

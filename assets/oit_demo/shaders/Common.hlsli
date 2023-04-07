@@ -29,6 +29,10 @@
 #define CUSTOM_TEXTURE_5_REGISTER     SHADER_REGISTER(t, 8)
 #define CUSTOM_TEXTURE_6_REGISTER     SHADER_REGISTER(t, 9)
 #define CUSTOM_TEXTURE_7_REGISTER     SHADER_REGISTER(t, 10)
+#define CUSTOM_UAV_0_REGISTER         SHADER_REGISTER(u, 11)
+#define CUSTOM_UAV_1_REGISTER         SHADER_REGISTER(u, 12)
+#define CUSTOM_UAV_2_REGISTER         SHADER_REGISTER(u, 13)
+#define CUSTOM_UAV_3_REGISTER         SHADER_REGISTER(u, 14)
 
 #define EPSILON 0.0001f
 
@@ -50,6 +54,15 @@ struct ShaderGlobals
     int      depthPeelingBackLayerIndex;
     int      depthPeelingParametersUnused0;
     int      depthPeelingParametersUnused1;
+};
+
+struct BufferBucketEntry
+{
+    float4 color;
+    float  depth;
+    float  unused0;
+    float  unused1;
+    float  unused2;
 };
 
 #if defined(IS_SHADER)
