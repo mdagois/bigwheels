@@ -16,8 +16,8 @@
 #include "Common.hlsli"
 #include "FullscreenVS.hlsli"
 
-RWTexture2D<uint>                     CountTexture : register(CUSTOM_UAV_0_REGISTER);
-RWStructuredBuffer<BufferBucketEntry> EntryBuffer  : register(CUSTOM_UAV_1_REGISTER);
+RWTexture2D<uint>                        CountTexture   : register(CUSTOM_UAV_0_REGISTER);
+RWStructuredBuffer<BufferBucketFragment> FragmentBuffer : register(CUSTOM_UAV_1_REGISTER);
 
 void MergeColor(inout float4 outColor, float4 layerColor)
 {
@@ -27,33 +27,33 @@ void MergeColor(inout float4 outColor, float4 layerColor)
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-    const uint2 bucketIndex = (uint2)input.position.xy;
-    const uint entryCount = CountTexture[bucketIndex];
+    const uint2 bucketIndex  = (uint2)input.position.xy;
+    const uint fragmentCount = CountTexture[bucketIndex];
 
-    BufferBucketEntry sortedEntries[BUFFER_BUCKET_SIZE_PER_PIXEL];
+    BufferBucketFragment sortedEntries[BUFFER_BUCKET_SIZE_PER_PIXEL];
 
     // Copy the fragments into local memory for sorting
     {
         float2 countTextureDimension = (float2)0;
         CountTexture.GetDimensions(countTextureDimension.x, countTextureDimension.y);
-        const uint entryBaseIndex = ((bucketIndex.y * (uint)countTextureDimension.x) + bucketIndex.x) * BUFFER_BUCKET_SIZE_PER_PIXEL;
-        for(uint i = 0; i < entryCount; ++i)
+        const uint fragmentBaseIndex = ((bucketIndex.y * (uint)countTextureDimension.x) + bucketIndex.x) * BUFFER_BUCKET_SIZE_PER_PIXEL;
+        for(uint i = 0; i < fragmentCount; ++i)
         {
-            sortedEntries[i] = EntryBuffer[entryBaseIndex + i];
+            sortedEntries[i] = FragmentBuffer[fragmentBaseIndex + i];
         }
     }
 
     // Sort the fragments by depth
     {
-        for(uint i = 0; i < entryCount - 1; ++i)
+        for(uint i = 0; i < fragmentCount - 1; ++i)
         {
-            for(uint j = i + 1; j < entryCount; ++j)
+            for(uint j = i + 1; j < fragmentCount; ++j)
             {
                 if(sortedEntries[j].depth < sortedEntries[i].depth)
                 {
-                    const BufferBucketEntry tmp = sortedEntries[i];
-                    sortedEntries[i] = sortedEntries[j];
-                    sortedEntries[j] = tmp;
+                    const BufferBucketFragment tmp = sortedEntries[i];
+                    sortedEntries[i]               = sortedEntries[j];
+                    sortedEntries[j]               = tmp;
                 }
             }
         }
@@ -62,7 +62,7 @@ float4 psmain(VSOutput input) : SV_TARGET
     // Merge the fragments to get the final color
     {
         float4 color = float4(0.0f, 0.0f, 0.0f, 1.0f);
-        for(uint i = 0; i < entryCount; ++i)
+        for(uint i = 0; i < fragmentCount; ++i)
         {
             MergeColor(color, sortedEntries[i].color);
         }

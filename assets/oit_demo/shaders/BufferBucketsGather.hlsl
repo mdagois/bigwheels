@@ -16,36 +16,36 @@
 #include "Common.hlsli"
 #include "TransparencyVS.hlsli"
 
-SamplerState                          NearestSampler     : register(CUSTOM_SAMPLER_0_REGISTER);
-Texture2D                             OpaqueDepthTexture : register(CUSTOM_TEXTURE_0_REGISTER);
-RWTexture2D<uint>                     CountTexture       : register(CUSTOM_UAV_0_REGISTER);
-RWStructuredBuffer<BufferBucketEntry> EntryBuffer        : register(CUSTOM_UAV_1_REGISTER);
+SamplerState                             NearestSampler     : register(CUSTOM_SAMPLER_0_REGISTER);
+Texture2D                                OpaqueDepthTexture : register(CUSTOM_TEXTURE_0_REGISTER);
+RWTexture2D<uint>                        CountTexture       : register(CUSTOM_UAV_0_REGISTER);
+RWStructuredBuffer<BufferBucketFragment> FragmentBuffer     : register(CUSTOM_UAV_1_REGISTER);
 
 void psmain(VSOutput input)
 {
     float2 textureDimension = (float2)0;
     CountTexture.GetDimensions(textureDimension.x, textureDimension.y);
 
-    // Test against opaque depth
+    // Test fragment against opaque depth
     {
         const float2 uv = input.position.xy / textureDimension;
         const float opaqueDepth = OpaqueDepthTexture.Sample(NearestSampler, uv).r;
         clip(input.position.z < opaqueDepth ? 1.0f : -1.0f);
     }
 
-    // Find the next entry index in the pixel bucket
+    // Find the next fragment index in the bucket
     const uint2 bucketIndex = (uint2)input.position.xy;
-    uint nextBucketEntryIndex = 0;
-    InterlockedAdd(CountTexture[bucketIndex], 1U, nextBucketEntryIndex);
+    uint nextBucketFragmentIndex = 0;
+    InterlockedAdd(CountTexture[bucketIndex], 1U, nextBucketFragmentIndex);
 
     // Ignore the fragment if the bucket is already full
-    if(nextBucketEntryIndex >= BUFFER_BUCKET_SIZE_PER_PIXEL)
+    if(nextBucketFragmentIndex >= BUFFER_BUCKET_SIZE_PER_PIXEL)
     {
         clip(-1.0f);
     }
 
     // Add the fragment to the bucket
-    const uint entryIndex = (((bucketIndex.y * (uint)textureDimension.x) + bucketIndex.x) * BUFFER_BUCKET_SIZE_PER_PIXEL) + nextBucketEntryIndex;
-    EntryBuffer[entryIndex].color = float4(input.color, g_Globals.meshOpacity);
-    EntryBuffer[entryIndex].depth = input.position.z;
+    const uint bufferFragmentIndex = (((bucketIndex.y * (uint)textureDimension.x) + bucketIndex.x) * BUFFER_BUCKET_SIZE_PER_PIXEL) + nextBucketFragmentIndex;
+    FragmentBuffer[bufferFragmentIndex].color = float4(input.color, g_Globals.meshOpacity);
+    FragmentBuffer[bufferFragmentIndex].depth = input.position.z;
 }

@@ -56,7 +56,7 @@ struct ShaderGlobals
     int      depthPeelingParametersUnused1;
 };
 
-struct BufferBucketEntry
+struct BufferBucketFragment
 {
     float4 color;
     float  depth;
