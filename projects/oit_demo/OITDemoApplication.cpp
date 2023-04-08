@@ -316,7 +316,9 @@ void OITDemoApp::FillSupportedAlgorithmData()
         addSupportedAlgorithm("Weighted average", ALGORITHM_WEIGHTED_AVERAGE);
     }
     addSupportedAlgorithm("Depth peeling", ALGORITHM_DEPTH_PEELING);
-    addSupportedAlgorithm("Buffer", ALGORITHM_BUFFER);
+    if (GetDevice()->FragmentStoresAndAtomicsSupported()) {
+        addSupportedAlgorithm("Buffer", ALGORITHM_BUFFER);
+    }
 }
 
 void OITDemoApp::ParseCommandLineOptions()
