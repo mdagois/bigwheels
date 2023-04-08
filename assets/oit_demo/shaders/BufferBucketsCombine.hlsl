@@ -19,10 +19,10 @@
 RWTexture2D<uint>                        CountTexture   : register(CUSTOM_UAV_0_REGISTER);
 RWStructuredBuffer<BufferBucketFragment> FragmentBuffer : register(CUSTOM_UAV_1_REGISTER);
 
-void MergeColor(inout float4 outColor, float4 layerColor)
+void MergeColor(inout float4 outColor, float4 fragmentColor)
 {
-    outColor.rgb = lerp(outColor.rgb, layerColor.rgb, layerColor.a);
-    outColor.a *= 1.0f - layerColor.a;
+    outColor.rgb = lerp(outColor.rgb, fragmentColor.rgb, fragmentColor.a);
+    outColor.a *= 1.0f - fragmentColor.a;
 }
 
 float4 psmain(VSOutput input) : SV_TARGET
@@ -43,13 +43,13 @@ float4 psmain(VSOutput input) : SV_TARGET
         }
     }
 
-    // Sort the fragments by depth
+    // Sort the fragments by depth (back to front)
     {
         for(uint i = 0; i < fragmentCount - 1; ++i)
         {
             for(uint j = i + 1; j < fragmentCount; ++j)
             {
-                if(sortedEntries[j].depth < sortedEntries[i].depth)
+                if(sortedEntries[j].depth > sortedEntries[i].depth)
                 {
                     const BufferBucketFragment tmp = sortedEntries[i];
                     sortedEntries[i]               = sortedEntries[j];
@@ -69,4 +69,7 @@ float4 psmain(VSOutput input) : SV_TARGET
         color.a = 1.0f - color.a;
         return color;
     }
+
+    // Reset fragment count for the next frame
+    CountTexture[bucketIndex] = 0;
 }
