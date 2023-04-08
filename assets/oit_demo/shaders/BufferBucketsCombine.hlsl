@@ -32,7 +32,7 @@ float4 psmain(VSOutput input) : SV_TARGET
 
     BufferBucketEntry sortedEntries[BUFFER_BUCKET_SIZE_PER_PIXEL];
 
-    // Copy the fragments
+    // Copy the fragments into local memory for sorting
     {
         float2 countTextureDimension = (float2)0;
         CountTexture.GetDimensions(countTextureDimension.x, countTextureDimension.y);

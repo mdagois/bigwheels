@@ -16,24 +16,36 @@
 #include "Common.hlsli"
 #include "TransparencyVS.hlsli"
 
-RWTexture2D<uint>                     CountTexture : register(CUSTOM_UAV_0_REGISTER);
-RWStructuredBuffer<BufferBucketEntry> EntryBuffer  : register(CUSTOM_UAV_1_REGISTER);
+SamplerState                          NearestSampler     : register(CUSTOM_SAMPLER_0_REGISTER);
+Texture2D                             OpaqueDepthTexture : register(CUSTOM_TEXTURE_0_REGISTER);
+RWTexture2D<uint>                     CountTexture       : register(CUSTOM_UAV_0_REGISTER);
+RWStructuredBuffer<BufferBucketEntry> EntryBuffer        : register(CUSTOM_UAV_1_REGISTER);
 
 void psmain(VSOutput input)
 {
+    float2 textureDimension = (float2)0;
+    CountTexture.GetDimensions(textureDimension.x, textureDimension.y);
+
+    // Test against opaque depth
+    {
+        const float2 uv = input.position.xy / textureDimension;
+        const float opaqueDepth = OpaqueDepthTexture.Sample(NearestSampler, uv).r;
+        clip(input.position.z < opaqueDepth ? 1.0f : -1.0f);
+    }
+
+    // Find the next entry index in the pixel bucket
     const uint2 bucketIndex = (uint2)input.position.xy;
     uint nextBucketEntryIndex = 0;
     InterlockedAdd(CountTexture[bucketIndex], 1U, nextBucketEntryIndex);
 
+    // Ignore the fragment if the bucket is already full
     if(nextBucketEntryIndex >= BUFFER_BUCKET_SIZE_PER_PIXEL)
     {
         clip(-1.0f);
     }
 
-    float2 countTextureDimension = (float2)0;
-    CountTexture.GetDimensions(countTextureDimension.x, countTextureDimension.y);
-
-    const uint entryIndex = (((bucketIndex.y * (uint)countTextureDimension.x) + bucketIndex.x) * BUFFER_BUCKET_SIZE_PER_PIXEL) + nextBucketEntryIndex;
+    // Add the fragment to the bucket
+    const uint entryIndex = (((bucketIndex.y * (uint)textureDimension.x) + bucketIndex.x) * BUFFER_BUCKET_SIZE_PER_PIXEL) + nextBucketEntryIndex;
     EntryBuffer[entryIndex].color = float4(input.color, g_Globals.meshOpacity);
     EntryBuffer[entryIndex].depth = input.position.z;
 }
