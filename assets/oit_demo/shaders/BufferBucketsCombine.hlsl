@@ -71,5 +71,5 @@ float4 psmain(VSOutput input) : SV_TARGET
     }
 
     // Reset fragment count for the next frame
-    CountTexture[bucketIndex] = 0;
+    CountTexture[bucketIndex] = 0U;
 }

@@ -16,6 +16,206 @@
 
 void OITDemoApp::SetupBuffer()
 {
+    // Count texture
+    {
+        grfx::TextureCreateInfo createInfo = {};
+        createInfo.imageType               = grfx::IMAGE_TYPE_2D;
+        createInfo.width                   = mTransparencyTexture->GetWidth();
+        createInfo.height                  = mTransparencyTexture->GetHeight();
+        createInfo.depth                   = 1;
+        createInfo.imageFormat             = grfx::FORMAT_R8_UINT;
+        createInfo.sampleCount             = grfx::SAMPLE_COUNT_1;
+        createInfo.mipLevelCount           = 1;
+        createInfo.arrayLayerCount         = 1;
+        createInfo.usageFlags.bits.storage = true;
+        createInfo.memoryUsage             = grfx::MEMORY_USAGE_GPU_ONLY;
+        createInfo.initialState            = grfx::RESOURCE_STATE_SHADER_RESOURCE;
+
+        PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mBuffer.countTexture));
+    }
+
+    // Fragment buffer
+    {
+        grfx::BufferCreateInfo bufferCreateInfo           = {};
+        bufferCreateInfo.size                             = std::max(sizeof(BufferBucketFragment) * BUFFER_BUCKET_SIZE_PER_PIXEL, static_cast<size_t>(PPX_MINIMUM_UNIFORM_BUFFER_SIZE));
+        bufferCreateInfo.usageFlags.bits.structuredBuffer = true;
+        bufferCreateInfo.memoryUsage                      = grfx::MEMORY_USAGE_GPU_ONLY;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mBuffer.fragmentBuffer));
+    }
+
+    // Clear pass
+    {
+        grfx::DrawPassCreateInfo2 createInfo  = {};
+        createInfo.width                      = mBuffer.countTexture->GetWidth();
+        createInfo.height                     = mBuffer.countTexture->GetHeight();
+        createInfo.renderTargetCount          = 1;
+        createInfo.pRenderTargetImages[0]     = mBuffer.countTexture->GetImage();
+        createInfo.pDepthStencilImage         = nullptr;
+        createInfo.renderTargetClearValues[0] = {0, 0, 0, 0};
+        PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mBuffer.clearPass));
+    }
+
+    // Gather pass
+    {
+        grfx::DrawPassCreateInfo2 createInfo  = {};
+        createInfo.width                      = mBuffer.countTexture->GetWidth();
+        createInfo.height                     = mBuffer.countTexture->GetHeight();
+        createInfo.renderTargetCount          = 0;
+        createInfo.pDepthStencilImage         = mOpaquePass->GetDepthStencilTexture()->GetImage();
+        createInfo.renderTargetClearValues[0] = {0, 0, 0, 0};
+        PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mBuffer.gatherPass));
+    }
+
+    ////////////////////////////////////////
+    // Gather
+    ////////////////////////////////////////
+
+    // Descriptor
+    {
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_SAMPLER_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_0_REGISTER, grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_1_REGISTER, grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mBuffer.gatherDescriptorSetLayout));
+
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mBuffer.gatherDescriptorSetLayout, &mBuffer.gatherDescriptorSet));
+
+        grfx::WriteDescriptor writes[5] = {};
+
+        writes[0].binding      = SHADER_GLOBALS_REGISTER;
+        writes[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writes[0].bufferOffset = 0;
+        writes[0].bufferRange  = PPX_WHOLE_SIZE;
+        writes[0].pBuffer      = mShaderGlobalsBuffer;
+
+        writes[1].binding  = CUSTOM_SAMPLER_0_REGISTER;
+        writes[1].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
+        writes[1].pSampler = mNearestSampler;
+
+        writes[2].binding    = CUSTOM_TEXTURE_0_REGISTER;
+        writes[2].arrayIndex = 0;
+        writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        writes[2].pImageView = mOpaquePass->GetDepthStencilTexture()->GetSampledImageView();
+
+        writes[3].binding                = CUSTOM_UAV_0_REGISTER;
+        writes[3].arrayIndex             = 0;
+        writes[3].type                   = grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        writes[3].pImageView             = mBuffer.countTexture->GetSampledImageView();
+
+        writes[4].binding                = CUSTOM_UAV_1_REGISTER;
+        writes[4].arrayIndex             = 0;
+        writes[4].type                   = grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER;
+        writes[4].bufferOffset           = 0;
+        writes[4].bufferRange            = PPX_WHOLE_SIZE;
+        writes[4].structuredElementCount = sizeof(BufferBucketFragment);
+        writes[4].pBuffer                = mBuffer.fragmentBuffer;
+
+        PPX_CHECKED_CALL(mBuffer.gatherDescriptorSet->UpdateDescriptors(5, writes));
+    }
+
+    // Pipeline
+    {
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 1;
+        piCreateInfo.sets[0].set                       = 0;
+        piCreateInfo.sets[0].pLayout                   = mBuffer.gatherDescriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mBuffer.gatherPipelineInterface));
+
+        grfx::ShaderModulePtr VS, PS;
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "BufferBucketsGather.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "BufferBucketsGather.ps", &PS));
+
+        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+        gpCreateInfo.VS                                 = {VS, "vsmain"};
+        gpCreateInfo.PS                                 = {PS, "psmain"};
+        gpCreateInfo.vertexInputState.bindingCount      = 1;
+        gpCreateInfo.vertexInputState.bindings[0]       = GetTransparentMesh()->GetDerivedVertexBindings()[0];
+        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+        gpCreateInfo.depthReadEnable                    = false;
+        gpCreateInfo.depthWriteEnable                   = false;
+        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+        gpCreateInfo.outputState.renderTargetCount      = 0;
+        gpCreateInfo.pPipelineInterface = mBuffer.gatherPipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mBuffer.gatherPipeline));
+
+        GetDevice()->DestroyShaderModule(VS);
+        GetDevice()->DestroyShaderModule(PS);
+    }
+
+    ////////////////////////////////////////
+    // Combine
+    ////////////////////////////////////////
+
+    // Descriptor
+    {
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_0_REGISTER, grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_1_REGISTER, grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mBuffer.combineDescriptorSetLayout));
+
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mBuffer.combineDescriptorSetLayout, &mBuffer.combineDescriptorSet));
+
+        grfx::WriteDescriptor writes[3] = {};
+
+        writes[0].binding      = SHADER_GLOBALS_REGISTER;
+        writes[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writes[0].bufferOffset = 0;
+        writes[0].bufferRange  = PPX_WHOLE_SIZE;
+        writes[0].pBuffer      = mShaderGlobalsBuffer;
+
+        writes[1].binding                = CUSTOM_UAV_0_REGISTER;
+        writes[1].arrayIndex             = 0;
+        writes[1].type                   = grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        writes[1].pImageView             = mBuffer.countTexture->GetSampledImageView();
+
+        writes[2].binding                = CUSTOM_UAV_1_REGISTER;
+        writes[2].arrayIndex             = 0;
+        writes[2].type                   = grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER;
+        writes[2].bufferOffset           = 0;
+        writes[2].bufferRange            = PPX_WHOLE_SIZE;
+        writes[2].structuredElementCount = sizeof(BufferBucketFragment);
+        writes[2].pBuffer                = mBuffer.fragmentBuffer;
+
+        PPX_CHECKED_CALL(mBuffer.combineDescriptorSet->UpdateDescriptors(3, writes));
+    }
+
+    // Pipeline
+    {
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 1;
+        piCreateInfo.sets[0].set                       = 0;
+        piCreateInfo.sets[0].pLayout                   = mBuffer.combineDescriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mBuffer.combinePipelineInterface));
+
+        grfx::ShaderModulePtr VS, PS;
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "BufferBucketsCombine.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "BufferBucketsCombine.ps", &PS));
+
+        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+        gpCreateInfo.VS                                 = {VS, "vsmain"};
+        gpCreateInfo.PS                                 = {PS, "psmain"};
+        gpCreateInfo.vertexInputState.bindingCount      = 0;
+        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+        gpCreateInfo.depthReadEnable                    = false;
+        gpCreateInfo.depthWriteEnable                   = false;
+        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+        gpCreateInfo.outputState.renderTargetCount      = 1;
+        gpCreateInfo.outputState.renderTargetFormats[0] = mTransparencyTexture->GetImageFormat();
+        gpCreateInfo.pPipelineInterface = mBuffer.combinePipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mBuffer.combinePipeline));
+
+        GetDevice()->DestroyShaderModule(VS);
+        GetDevice()->DestroyShaderModule(PS);
+    }
 }
 
 void OITDemoApp::RecordBuffer()

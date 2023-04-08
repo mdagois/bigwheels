@@ -20,8 +20,8 @@ void OITDemoApp::SetupDepthPeeling()
     {
         grfx::TextureCreateInfo createInfo         = {};
         createInfo.imageType                       = grfx::IMAGE_TYPE_2D;
-        createInfo.width                           = GetSwapchain()->GetWidth();
-        createInfo.height                          = GetSwapchain()->GetHeight();
+        createInfo.width                           = mTransparencyTexture->GetWidth();
+        createInfo.height                          = mTransparencyTexture->GetHeight();
         createInfo.depth                           = 1;
         createInfo.imageFormat                     = grfx::FORMAT_B8G8R8A8_UNORM;
         createInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;

@@ -24,8 +24,8 @@ void OITDemoApp::SetupWeightedAverage()
     {
         grfx::TextureCreateInfo createInfo         = {};
         createInfo.imageType                       = grfx::IMAGE_TYPE_2D;
-        createInfo.width                           = GetSwapchain()->GetWidth();
-        createInfo.height                          = GetSwapchain()->GetHeight();
+        createInfo.width                           = mTransparencyTexture->GetWidth();
+        createInfo.height                          = mTransparencyTexture->GetHeight();
         createInfo.depth                           = 1;
         createInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
         createInfo.mipLevelCount                   = 1;

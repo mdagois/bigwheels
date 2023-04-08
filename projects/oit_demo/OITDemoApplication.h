@@ -228,4 +228,22 @@ private:
         grfx::PipelineInterfacePtr   combinePipelineInterface;
         grfx::GraphicsPipelinePtr    combinePipeline;
     } mDepthPeeling;
+
+    struct
+    {
+        grfx::TexturePtr  countTexture;
+        grfx::BufferPtr   fragmentBuffer;
+        grfx::DrawPassPtr clearPass;
+        grfx::DrawPassPtr gatherPass;
+
+        grfx::DescriptorSetLayoutPtr gatherDescriptorSetLayout;
+        grfx::DescriptorSetPtr       gatherDescriptorSet;
+        grfx::PipelineInterfacePtr   gatherPipelineInterface;
+        grfx::GraphicsPipelinePtr    gatherPipeline;
+
+        grfx::DescriptorSetLayoutPtr combineDescriptorSetLayout;
+        grfx::DescriptorSetPtr       combineDescriptorSet;
+        grfx::PipelineInterfacePtr   combinePipelineInterface;
+        grfx::GraphicsPipelinePtr    combinePipeline;
+    } mBuffer;
 };
