@@ -25,7 +25,7 @@ void OITDemoApp::SetupBuffer()
         createInfo.width                           = mTransparencyTexture->GetWidth();
         createInfo.height                          = mTransparencyTexture->GetHeight();
         createInfo.depth                           = 1;
-        createInfo.imageFormat                     = grfx::FORMAT_R8_UINT;
+        createInfo.imageFormat                     = grfx::FORMAT_R32_UINT;
         createInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
         createInfo.mipLevelCount                   = 1;
         createInfo.arrayLayerCount                 = 1;
@@ -37,10 +37,14 @@ void OITDemoApp::SetupBuffer()
         PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mBuffer.countTexture));
     }
 
+    const uint32_t bucketCount         = mBuffer.countTexture->GetWidth() * mBuffer.countTexture->GetHeight();
+    const uint32_t bucketFragmentCount = bucketCount * BUFFER_BUCKET_SIZE_PER_PIXEL;
+
     // Fragment buffer
     {
         grfx::BufferCreateInfo bufferCreateInfo           = {};
-        bufferCreateInfo.size                             = std::max(sizeof(BufferBucketFragment) * BUFFER_BUCKET_SIZE_PER_PIXEL, static_cast<size_t>(PPX_MINIMUM_UNIFORM_BUFFER_SIZE));
+        bufferCreateInfo.size                             = bucketFragmentCount * sizeof(BufferBucketFragment);
+        bufferCreateInfo.structuredElementStride          = sizeof(BufferBucketFragment);
         bufferCreateInfo.usageFlags.bits.structuredBuffer = true;
         bufferCreateInfo.memoryUsage                      = grfx::MEMORY_USAGE_GPU_ONLY;
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mBuffer.fragmentBuffer));
@@ -64,7 +68,7 @@ void OITDemoApp::SetupBuffer()
         createInfo.width                      = mBuffer.countTexture->GetWidth();
         createInfo.height                     = mBuffer.countTexture->GetHeight();
         createInfo.renderTargetCount          = 0;
-        createInfo.pDepthStencilImage         = mOpaquePass->GetDepthStencilTexture()->GetImage();
+        createInfo.pDepthStencilImage         = nullptr;
         createInfo.renderTargetClearValues[0] = {0, 0, 0, 0};
         PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mBuffer.gatherPass));
     }
@@ -112,7 +116,7 @@ void OITDemoApp::SetupBuffer()
         writes[4].type                   = grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER;
         writes[4].bufferOffset           = 0;
         writes[4].bufferRange            = PPX_WHOLE_SIZE;
-        writes[4].structuredElementCount = sizeof(BufferBucketFragment);
+        writes[4].structuredElementCount = bucketFragmentCount;
         writes[4].pBuffer                = mBuffer.fragmentBuffer;
 
         PPX_CHECKED_CALL(mBuffer.gatherDescriptorSet->UpdateDescriptors(5, writes));
@@ -182,7 +186,7 @@ void OITDemoApp::SetupBuffer()
         writes[2].type                   = grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER;
         writes[2].bufferOffset           = 0;
         writes[2].bufferRange            = PPX_WHOLE_SIZE;
-        writes[2].structuredElementCount = sizeof(BufferBucketFragment);
+        writes[2].structuredElementCount = bucketFragmentCount;
         writes[2].pBuffer                = mBuffer.fragmentBuffer;
 
         PPX_CHECKED_CALL(mBuffer.combineDescriptorSet->UpdateDescriptors(3, writes));
@@ -212,7 +216,8 @@ void OITDemoApp::SetupBuffer()
         gpCreateInfo.depthWriteEnable                   = false;
         gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
         gpCreateInfo.outputState.renderTargetCount      = 1;
-        gpCreateInfo.outputState.renderTargetFormats[0] = mTransparencyTexture->GetImageFormat();
+        gpCreateInfo.outputState.renderTargetFormats[0] = mTransparencyPass->GetRenderTargetTexture(0)->GetImageFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = mTransparencyPass->GetDepthStencilTexture()->GetImageFormat();
         gpCreateInfo.pPipelineInterface                 = mBuffer.combinePipelineInterface;
         PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mBuffer.combinePipeline));
 
@@ -223,14 +228,13 @@ void OITDemoApp::SetupBuffer()
 
 void OITDemoApp::RecordBuffer()
 {
-#if 0
     if (sTextureNeedClear) {
         mCommandBuffer->TransitionImageLayout(
             mBuffer.clearPass,
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
             grfx::RESOURCE_STATE_RENDER_TARGET,
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
-            grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
+            grfx::RESOURCE_STATE_SHADER_RESOURCE);
         mCommandBuffer->BeginRenderPass(mBuffer.clearPass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_ALL);
 
         mCommandBuffer->SetScissors(mBuffer.clearPass->GetScissor());
@@ -241,11 +245,13 @@ void OITDemoApp::RecordBuffer()
             mBuffer.clearPass,
             grfx::RESOURCE_STATE_RENDER_TARGET,
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
-            grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE,
+            grfx::RESOURCE_STATE_SHADER_RESOURCE,
             grfx::RESOURCE_STATE_SHADER_RESOURCE);
 
         sTextureNeedClear = false;
     }
+
+    mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_GENERAL);
 
     {
         mCommandBuffer->BeginRenderPass(mBuffer.gatherPass, 0);
@@ -286,5 +292,6 @@ void OITDemoApp::RecordBuffer()
             grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE,
             grfx::RESOURCE_STATE_SHADER_RESOURCE);
     }
-#endif
+
+    mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_GENERAL, grfx::RESOURCE_STATE_SHADER_RESOURCE);
 }

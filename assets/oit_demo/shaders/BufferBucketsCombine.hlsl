@@ -28,7 +28,8 @@ void MergeColor(inout float4 outColor, float4 fragmentColor)
 float4 psmain(VSOutput input) : SV_TARGET
 {
     const uint2 bucketIndex  = (uint2)input.position.xy;
-    const uint fragmentCount = CountTexture[bucketIndex];
+    const uint fragmentCount = min(CountTexture[bucketIndex], BUFFER_BUCKET_SIZE_PER_PIXEL);
+    CountTexture[bucketIndex] = 0U; // Reset fragment count for the next frame
 
     BufferBucketFragment sortedEntries[BUFFER_BUCKET_SIZE_PER_PIXEL];
 
@@ -60,16 +61,12 @@ float4 psmain(VSOutput input) : SV_TARGET
     }
 
     // Merge the fragments to get the final color
+    float4 color = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    for(uint i = 0; i < fragmentCount; ++i)
     {
-        float4 color = float4(0.0f, 0.0f, 0.0f, 1.0f);
-        for(uint i = 0; i < fragmentCount; ++i)
-        {
-            MergeColor(color, sortedEntries[i].color);
-        }
-        color.a = 1.0f - color.a;
-        return color;
+        const BufferBucketFragment fragment = sortedEntries[i];
+        MergeColor(color, fragment.color);
     }
-
-    // Reset fragment count for the next frame
-    CountTexture[bucketIndex] = 0U;
+    color.a = 1.0f - color.a;
+    return color;
 }
