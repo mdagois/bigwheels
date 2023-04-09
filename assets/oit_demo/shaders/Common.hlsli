@@ -56,15 +56,6 @@ struct ShaderGlobals
     int      depthPeelingParametersUnused1;
 };
 
-struct BufferBucketFragment
-{
-    float4 color;
-    float  depth;
-    float  unused0;
-    float  unused1;
-    float  unused2;
-};
-
 #if defined(IS_SHADER)
 
 ConstantBuffer<ShaderGlobals> g_Globals : register(SHADER_GLOBALS_REGISTER);

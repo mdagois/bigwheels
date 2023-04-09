@@ -37,17 +37,22 @@ void OITDemoApp::SetupBuffer()
         PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mBuffer.countTexture));
     }
 
-    const uint32_t bucketCount         = mBuffer.countTexture->GetWidth() * mBuffer.countTexture->GetHeight();
-    const uint32_t bucketFragmentCount = bucketCount * BUFFER_BUCKET_SIZE_PER_PIXEL;
-
-    // Fragment buffer
+    // Fragment texture
     {
-        grfx::BufferCreateInfo bufferCreateInfo           = {};
-        bufferCreateInfo.size                             = bucketFragmentCount * sizeof(BufferBucketFragment);
-        bufferCreateInfo.structuredElementStride          = sizeof(BufferBucketFragment);
-        bufferCreateInfo.usageFlags.bits.structuredBuffer = true;
-        bufferCreateInfo.memoryUsage                      = grfx::MEMORY_USAGE_GPU_ONLY;
-        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mBuffer.fragmentBuffer));
+        grfx::TextureCreateInfo createInfo         = {};
+        createInfo.imageType                       = grfx::IMAGE_TYPE_2D;
+        createInfo.width                           = mBuffer.countTexture->GetWidth();
+        createInfo.height                          = mBuffer.countTexture->GetHeight() * BUFFER_BUCKET_SIZE_PER_PIXEL;
+        createInfo.depth                           = 1;
+        createInfo.imageFormat                     = grfx::FORMAT_R32G32_UINT;
+        createInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
+        createInfo.mipLevelCount                   = 1;
+        createInfo.arrayLayerCount                 = 1;
+        createInfo.usageFlags.bits.storage         = true;
+        createInfo.memoryUsage                     = grfx::MEMORY_USAGE_GPU_ONLY;
+        createInfo.initialState                    = grfx::RESOURCE_STATE_SHADER_RESOURCE;
+
+        PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mBuffer.fragmentTexture));
     }
 
     // Clear pass
@@ -81,15 +86,14 @@ void OITDemoApp::SetupBuffer()
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_SAMPLER_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_0_REGISTER, grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_1_REGISTER, grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_1_REGISTER, grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mBuffer.gatherDescriptorSetLayout));
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mBuffer.gatherDescriptorSetLayout, &mBuffer.gatherDescriptorSet));
 
-        grfx::WriteDescriptor writes[5] = {};
+        grfx::WriteDescriptor writes[4] = {};
 
         writes[0].binding      = SHADER_GLOBALS_REGISTER;
         writes[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -97,29 +101,22 @@ void OITDemoApp::SetupBuffer()
         writes[0].bufferRange  = PPX_WHOLE_SIZE;
         writes[0].pBuffer      = mShaderGlobalsBuffer;
 
-        writes[1].binding  = CUSTOM_SAMPLER_0_REGISTER;
-        writes[1].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
-        writes[1].pSampler = mNearestSampler;
+        writes[1].binding    = CUSTOM_TEXTURE_0_REGISTER;
+        writes[1].arrayIndex = 0;
+        writes[1].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        writes[1].pImageView = mOpaquePass->GetDepthStencilTexture()->GetSampledImageView();
 
-        writes[2].binding    = CUSTOM_TEXTURE_0_REGISTER;
+        writes[2].binding    = CUSTOM_UAV_0_REGISTER;
         writes[2].arrayIndex = 0;
-        writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        writes[2].pImageView = mOpaquePass->GetDepthStencilTexture()->GetSampledImageView();
+        writes[2].type       = grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        writes[2].pImageView = mBuffer.countTexture->GetStorageImageView();
 
-        writes[3].binding    = CUSTOM_UAV_0_REGISTER;
+        writes[3].binding    = CUSTOM_UAV_1_REGISTER;
         writes[3].arrayIndex = 0;
         writes[3].type       = grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        writes[3].pImageView = mBuffer.countTexture->GetStorageImageView();
+        writes[3].pImageView = mBuffer.fragmentTexture->GetStorageImageView();
 
-        writes[4].binding                = CUSTOM_UAV_1_REGISTER;
-        writes[4].arrayIndex             = 0;
-        writes[4].type                   = grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER;
-        writes[4].bufferOffset           = 0;
-        writes[4].bufferRange            = PPX_WHOLE_SIZE;
-        writes[4].structuredElementCount = bucketFragmentCount;
-        writes[4].pBuffer                = mBuffer.fragmentBuffer;
-
-        PPX_CHECKED_CALL(mBuffer.gatherDescriptorSet->UpdateDescriptors(5, writes));
+        PPX_CHECKED_CALL(mBuffer.gatherDescriptorSet->UpdateDescriptors(4, writes));
     }
 
     // Pipeline
@@ -163,7 +160,7 @@ void OITDemoApp::SetupBuffer()
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_0_REGISTER, grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_1_REGISTER, grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_1_REGISTER, grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mBuffer.combineDescriptorSetLayout));
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mBuffer.combineDescriptorSetLayout, &mBuffer.combineDescriptorSet));
@@ -181,13 +178,10 @@ void OITDemoApp::SetupBuffer()
         writes[1].type       = grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE;
         writes[1].pImageView = mBuffer.countTexture->GetStorageImageView();
 
-        writes[2].binding                = CUSTOM_UAV_1_REGISTER;
-        writes[2].arrayIndex             = 0;
-        writes[2].type                   = grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER;
-        writes[2].bufferOffset           = 0;
-        writes[2].bufferRange            = PPX_WHOLE_SIZE;
-        writes[2].structuredElementCount = bucketFragmentCount;
-        writes[2].pBuffer                = mBuffer.fragmentBuffer;
+        writes[2].binding    = CUSTOM_UAV_1_REGISTER;
+        writes[2].arrayIndex = 0;
+        writes[2].type       = grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        writes[2].pImageView = mBuffer.fragmentTexture->GetStorageImageView();
 
         PPX_CHECKED_CALL(mBuffer.combineDescriptorSet->UpdateDescriptors(3, writes));
     }
@@ -251,9 +245,9 @@ void OITDemoApp::RecordBuffer()
         sTextureNeedClear = false;
     }
 
-    mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_GENERAL);
-
     {
+        mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_GENERAL);
+        mCommandBuffer->TransitionImageLayout(mBuffer.fragmentTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_GENERAL);
         mCommandBuffer->BeginRenderPass(mBuffer.gatherPass, 0);
 
         mCommandBuffer->SetScissors(mBuffer.gatherPass->GetScissor());
@@ -266,9 +260,13 @@ void OITDemoApp::RecordBuffer()
         mCommandBuffer->DrawIndexed(GetTransparentMesh()->GetIndexCount());
 
         mCommandBuffer->EndRenderPass();
+        mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_GENERAL, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+        mCommandBuffer->TransitionImageLayout(mBuffer.fragmentTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_GENERAL, grfx::RESOURCE_STATE_SHADER_RESOURCE);
     }
 
     {
+        mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_GENERAL);
+        mCommandBuffer->TransitionImageLayout(mBuffer.fragmentTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_GENERAL);
         mCommandBuffer->TransitionImageLayout(
             mTransparencyPass,
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
@@ -291,7 +289,7 @@ void OITDemoApp::RecordBuffer()
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
             grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE,
             grfx::RESOURCE_STATE_SHADER_RESOURCE);
+        mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_GENERAL, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+        mCommandBuffer->TransitionImageLayout(mBuffer.fragmentTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_GENERAL, grfx::RESOURCE_STATE_SHADER_RESOURCE);
     }
-
-    mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_GENERAL, grfx::RESOURCE_STATE_SHADER_RESOURCE);
 }

@@ -16,20 +16,21 @@
 #include "Common.hlsli"
 #include "TransparencyVS.hlsli"
 
-SamplerState                             NearestSampler     : register(CUSTOM_SAMPLER_0_REGISTER);
-Texture2D                                OpaqueDepthTexture : register(CUSTOM_TEXTURE_0_REGISTER);
-RWTexture2D<uint>                        CountTexture       : register(CUSTOM_UAV_0_REGISTER);
-RWStructuredBuffer<BufferBucketFragment> FragmentBuffer     : register(CUSTOM_UAV_1_REGISTER);
+Texture2D          OpaqueDepthTexture : register(CUSTOM_TEXTURE_0_REGISTER);
+RWTexture2D<uint>  CountTexture       : register(CUSTOM_UAV_0_REGISTER);
+RWTexture2D<uint2> FragmentTexture    : register(CUSTOM_UAV_1_REGISTER);
+
+uint PackColor(float4 color)
+{
+    const uint4 ci = (uint4)(clamp(color, 0.0f, 1.0f) * 255.0f);
+    return (ci.r << 24) | (ci.g << 16) | (ci.b << 8) | ci.a;
+}
 
 void psmain(VSOutput input)
 {
-    float2 textureDimension = (float2)0;
-    CountTexture.GetDimensions(textureDimension.x, textureDimension.y);
-
     // Test fragment against opaque depth
     {
-        const float2 uv = input.position.xy / textureDimension;
-        const float opaqueDepth = OpaqueDepthTexture.Sample(NearestSampler, uv).r;
+        const float opaqueDepth = OpaqueDepthTexture.Load(int3(input.position.xy, 0)).r;
         clip(input.position.z < opaqueDepth ? 1.0f : -1.0f);
     }
 
@@ -45,7 +46,8 @@ void psmain(VSOutput input)
     }
 
     // Add the fragment to the bucket
-    const uint bufferFragmentIndex = (((bucketIndex.y * (uint)textureDimension.x) + bucketIndex.x) * BUFFER_BUCKET_SIZE_PER_PIXEL) + nextBucketFragmentIndex;
-    FragmentBuffer[bufferFragmentIndex].color = float4(input.color, g_Globals.meshOpacity);
-    FragmentBuffer[bufferFragmentIndex].depth = input.position.z;
+    uint2 textureFragmentIndex = bucketIndex;
+    textureFragmentIndex.y *= BUFFER_BUCKET_SIZE_PER_PIXEL;
+    textureFragmentIndex.y += nextBucketFragmentIndex;
+    FragmentTexture[textureFragmentIndex] = uint2(PackColor(float4(input.color, g_Globals.meshOpacity)), asuint(input.position.z));
 }

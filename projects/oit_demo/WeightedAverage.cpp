@@ -262,8 +262,8 @@ void OITDemoApp::RecordWeightedAverage()
             grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
         mCommandBuffer->BeginRenderPass(gatherPass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_RENDER_TARGETS);
 
-        mCommandBuffer->SetScissors(mTransparencyPass->GetScissor());
-        mCommandBuffer->SetViewports(mTransparencyPass->GetViewport());
+        mCommandBuffer->SetScissors(gatherPass->GetScissor());
+        mCommandBuffer->SetViewports(gatherPass->GetViewport());
 
         mCommandBuffer->BindGraphicsDescriptorSets(mWeightedAverage.gatherPipelineInterface, 1, &mWeightedAverage.gatherDescriptorSet);
         mCommandBuffer->BindGraphicsPipeline(gatherPipeline);

@@ -232,7 +232,7 @@ private:
     struct
     {
         grfx::TexturePtr  countTexture;
-        grfx::BufferPtr   fragmentBuffer;
+        grfx::TexturePtr  fragmentTexture;
         grfx::DrawPassPtr clearPass;
         grfx::DrawPassPtr gatherPass;
 
