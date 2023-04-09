@@ -357,11 +357,21 @@ void OITDemoApp::Setup()
     FillSupportedAlgorithmData();
     ParseCommandLineOptions();
 
-    SetupUnsortedOver();
-    SetupWeightedSum();
-    SetupWeightedAverage();
-    SetupDepthPeeling();
-    SetupBuffer();
+    void (OITDemoApp::*setupFuncs[])() =
+    {
+        &OITDemoApp::SetupUnsortedOver,
+        &OITDemoApp::SetupWeightedSum,
+        &OITDemoApp::SetupWeightedAverage,
+        &OITDemoApp::SetupDepthPeeling,
+        &OITDemoApp::SetupBuffer,
+    };
+    static_assert(sizeof(setupFuncs) / sizeof(setupFuncs[0]) == ALGORITHMS_COUNT, "Algorithm setup func count mismatch");
+
+    for(const Algorithm algorithm : mSupportedAlgorithmIds)
+    {
+        PPX_ASSERT_MSG(algorithm >= 0 && algorithm < ALGORITHMS_COUNT, "unknown algorithm");
+        (this->*setupFuncs[algorithm])();
+    }
 }
 
 void OITDemoApp::Update()
@@ -514,26 +524,19 @@ void OITDemoApp::RecordOpaque()
 
 void OITDemoApp::RecordTransparency()
 {
-    switch (GetSelectedAlgorithm()) {
-        case ALGORITHM_UNSORTED_OVER:
-            RecordUnsortedOver();
-            break;
-        case ALGORITHM_WEIGHTED_SUM:
-            RecordWeightedSum();
-            break;
-        case ALGORITHM_WEIGHTED_AVERAGE:
-            RecordWeightedAverage();
-            break;
-        case ALGORITHM_DEPTH_PEELING:
-            RecordDepthPeeling();
-            break;
-        case ALGORITHM_BUFFER:
-            RecordBuffer();
-            break;
-        default:
-            PPX_ASSERT_MSG(false, "unknown algorithm");
-            break;
-    }
+    void (OITDemoApp::*recordFuncs[])() =
+    {
+            &OITDemoApp::RecordUnsortedOver,
+            &OITDemoApp::RecordWeightedSum,
+            &OITDemoApp::RecordWeightedAverage,
+            &OITDemoApp::RecordDepthPeeling,
+            &OITDemoApp::RecordBuffer,
+    };
+    static_assert(sizeof(recordFuncs) / sizeof(recordFuncs[0]) == ALGORITHMS_COUNT, "Algorithm record func count mismatch");
+
+    const Algorithm algorithm = GetSelectedAlgorithm();
+    PPX_ASSERT_MSG(algorithm >= 0 && algorithm < ALGORITHMS_COUNT, "unknown algorithm");
+    (this->*recordFuncs[algorithm])();
 }
 
 void OITDemoApp::RecordComposite(grfx::RenderPassPtr renderPass)
