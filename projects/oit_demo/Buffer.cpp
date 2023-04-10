@@ -138,7 +138,7 @@ void OITDemoApp::SetupBuffer()
         gpCreateInfo.vertexInputState.bindings[0]      = GetTransparentMesh()->GetDerivedVertexBindings()[0];
         gpCreateInfo.topology                          = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         gpCreateInfo.polygonMode                       = grfx::POLYGON_MODE_FILL;
-        gpCreateInfo.cullMode                          = grfx::CULL_MODE_BACK;
+        gpCreateInfo.cullMode                          = grfx::CULL_MODE_NONE;
         gpCreateInfo.frontFace                         = grfx::FRONT_FACE_CCW;
         gpCreateInfo.depthReadEnable                   = false;
         gpCreateInfo.depthWriteEnable                  = false;

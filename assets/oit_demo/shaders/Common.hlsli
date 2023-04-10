@@ -47,13 +47,13 @@ struct ShaderGlobals
     float4   backgroundColor;
     float4x4 meshMVP;
     float    meshOpacity;
-    float    meshParametersUnused0;
-    float    meshParametersUnused1;
-    float    meshParametersUnused2;
+    float    _floatUnused0;
+    float    _floatUnused1;
+    float    _floatUnused2;
     int      depthPeelingFrontLayerIndex;
     int      depthPeelingBackLayerIndex;
-    int      depthPeelingParametersUnused0;
-    int      depthPeelingParametersUnused1;
+    int      bufferFragmentsMaxCount;
+    int      _intUnused0;
 };
 
 #if defined(IS_SHADER)

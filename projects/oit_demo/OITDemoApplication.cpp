@@ -16,7 +16,7 @@
 // TODO Choice of cubemaps as background
 // TODO Add WeightedAverage with depth
 // TODO Add Dual depth peeling
-// TODO Add buffer-based algorithms
+// TODO Add linked list algorithms
 // TODO Add split windows support to compare algorithms
 
 #include "OITDemoApplication.h"
@@ -349,6 +349,8 @@ void OITDemoApp::ParseCommandLineOptions()
 
     mGuiParameters.depthPeeling.startLayer  = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_start_layer", 0), 0, DEPTH_PEELING_LAYERS_COUNT - 1);
     mGuiParameters.depthPeeling.layersCount = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_layers_count", DEPTH_PEELING_LAYERS_COUNT), 1, DEPTH_PEELING_LAYERS_COUNT);
+
+    mGuiParameters.buffer.fragmentsMaxCount = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bu_fragments_max_count", BUFFER_BUCKET_SIZE_PER_PIXEL), 1, BUFFER_BUCKET_SIZE_PER_PIXEL);
 }
 
 void OITDemoApp::Setup()
@@ -411,6 +413,8 @@ void OITDemoApp::Update()
 
         shaderGlobals.depthPeelingFrontLayerIndex = std::max(0, mGuiParameters.depthPeeling.startLayer);
         shaderGlobals.depthPeelingBackLayerIndex  = std::min(DEPTH_PEELING_LAYERS_COUNT - 1, mGuiParameters.depthPeeling.startLayer + mGuiParameters.depthPeeling.layersCount - 1);
+
+        shaderGlobals.bufferFragmentsMaxCount  = std::min(BUFFER_BUCKET_SIZE_PER_PIXEL, mGuiParameters.buffer.fragmentsMaxCount);
 
         mShaderGlobalsBuffer->CopyFromSource(sizeof(shaderGlobals), &shaderGlobals);
     }
@@ -480,10 +484,15 @@ void OITDemoApp::UpdateGUI()
             }
             case ALGORITHM_DEPTH_PEELING: {
                 ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
-                ImGui::SliderInt("DP first layer", &mGuiParameters.depthPeeling.startLayer, 0, DEPTH_PEELING_LAYERS_COUNT - 1);
+                ImGui::SliderInt("DP start layer", &mGuiParameters.depthPeeling.startLayer, 0, DEPTH_PEELING_LAYERS_COUNT - 1);
                 ImGui::SliderInt("DP layers count", &mGuiParameters.depthPeeling.layersCount, 1, DEPTH_PEELING_LAYERS_COUNT);
                 break;
             }
+            case ALGORITHM_BUFFER: {
+                ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
+                ImGui::SliderInt("BU fragments max count", &mGuiParameters.buffer.fragmentsMaxCount, 1, BUFFER_BUCKET_SIZE_PER_PIXEL);
+               break;
+           }
             default: {
                 break;
             }

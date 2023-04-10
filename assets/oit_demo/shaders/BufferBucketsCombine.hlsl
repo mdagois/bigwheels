@@ -36,8 +36,8 @@ void MergeColor(inout float4 outColor, float4 fragmentColor)
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-    const uint2 bucketIndex  = (uint2)input.position.xy;
-    const uint fragmentCount = min(CountTexture[bucketIndex], BUFFER_BUCKET_SIZE_PER_PIXEL);
+    const uint2 bucketIndex   = (uint2)input.position.xy;
+    const int fragmentCount   = min(min((int)CountTexture[bucketIndex], g_Globals.bufferFragmentsMaxCount), BUFFER_BUCKET_SIZE_PER_PIXEL);
     CountTexture[bucketIndex] = 0U; // Reset fragment count for the next frame
 
     uint2 sortedEntries[BUFFER_BUCKET_SIZE_PER_PIXEL];
@@ -46,21 +46,25 @@ float4 psmain(VSOutput input) : SV_TARGET
     {
         uint2 fragmentIndex = bucketIndex;
         fragmentIndex.y *= BUFFER_BUCKET_SIZE_PER_PIXEL;
-        for(uint i = 0; i < fragmentCount; ++i)
+        for(int i = 0; i < fragmentCount; ++i)
         {
             sortedEntries[i] = FragmentTexture[fragmentIndex];
             fragmentIndex.y += 1U;
         }
     }
 
-    // Sort the fragments by depth (back to front)
-    if(fragmentCount > 0)
+    if(fragmentCount <= 0)
     {
-        for(uint i = 0; i < fragmentCount - 1; ++i)
+        return (float4)0.0f;
+    }
+
+    // Sort the fragments by depth (back to front)
+    {
+        for(int i = 0; i < fragmentCount - 1; ++i)
         {
-            for(uint j = i + 1; j < fragmentCount; ++j)
+            for(int j = i + 1; j < fragmentCount; ++j)
             {
-                if(asfloat(sortedEntries[j].y) > asfloat(sortedEntries[i].y))
+                if(sortedEntries[j].y > sortedEntries[i].y)
                 {
                     const uint2 tmp  = sortedEntries[i];
                     sortedEntries[i] = sortedEntries[j];
@@ -72,7 +76,7 @@ float4 psmain(VSOutput input) : SV_TARGET
 
     // Merge the fragments to get the final color
     float4 color = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    for(uint i = 0; i < fragmentCount; ++i)
+    for(int i = 0; i < fragmentCount; ++i)
     {
         MergeColor(color, UnpackColor(sortedEntries[i].x));
     }

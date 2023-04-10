@@ -95,6 +95,11 @@ private:
             int32_t startLayer;
             int32_t layersCount;
         } depthPeeling;
+
+        struct
+        {
+            int32_t fragmentsMaxCount;
+        } buffer;
     };
 
     std::vector<const char*> mSupportedAlgorithmNames;
