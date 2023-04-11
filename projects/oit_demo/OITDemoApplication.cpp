@@ -261,7 +261,7 @@ void OITDemoApp::SetupCommon()
         writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         writes[2].pImageView = mTransparencyTexture->GetSampledImageView();
 
-        PPX_CHECKED_CALL(mCompositeDescriptorSet->UpdateDescriptors(3, writes));
+        PPX_CHECKED_CALL(mCompositeDescriptorSet->UpdateDescriptors(sizeof(writes) / sizeof(writes[0]), writes));
     }
 
     // Pipeline

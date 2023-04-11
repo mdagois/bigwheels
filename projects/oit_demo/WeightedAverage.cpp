@@ -182,7 +182,7 @@ void OITDemoApp::SetupWeightedAverage()
         writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         writes[2].pImageView = mWeightedAverage.extraTexture->GetSampledImageView();
 
-        PPX_CHECKED_CALL(mWeightedAverage.combineDescriptorSet->UpdateDescriptors(3, writes));
+        PPX_CHECKED_CALL(mWeightedAverage.combineDescriptorSet->UpdateDescriptors(sizeof(writes) / sizeof(writes[0]), writes));
     }
 
     // Pipeline

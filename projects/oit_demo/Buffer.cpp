@@ -116,7 +116,7 @@ void OITDemoApp::SetupBuffer()
         writes[3].type       = grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE;
         writes[3].pImageView = mBuffer.fragmentTexture->GetStorageImageView();
 
-        PPX_CHECKED_CALL(mBuffer.gatherDescriptorSet->UpdateDescriptors(4, writes));
+        PPX_CHECKED_CALL(mBuffer.gatherDescriptorSet->UpdateDescriptors(sizeof(writes) / sizeof(writes[0]), writes));
     }
 
     // Pipeline
@@ -183,7 +183,7 @@ void OITDemoApp::SetupBuffer()
         writes[2].type       = grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE;
         writes[2].pImageView = mBuffer.fragmentTexture->GetStorageImageView();
 
-        PPX_CHECKED_CALL(mBuffer.combineDescriptorSet->UpdateDescriptors(3, writes));
+        PPX_CHECKED_CALL(mBuffer.combineDescriptorSet->UpdateDescriptors(sizeof(writes) / sizeof(writes[0]), writes));
     }
 
     // Pipeline
