@@ -39,18 +39,18 @@ void OITDemoApp::SetupBuffer()
 
     // Fragment texture
     {
-        grfx::TextureCreateInfo createInfo         = {};
-        createInfo.imageType                       = grfx::IMAGE_TYPE_2D;
-        createInfo.width                           = mBuffer.countTexture->GetWidth();
-        createInfo.height                          = mBuffer.countTexture->GetHeight() * BUFFER_BUCKET_SIZE_PER_PIXEL;
-        createInfo.depth                           = 1;
-        createInfo.imageFormat                     = grfx::FORMAT_R32G32_UINT;
-        createInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
-        createInfo.mipLevelCount                   = 1;
-        createInfo.arrayLayerCount                 = 1;
-        createInfo.usageFlags.bits.storage         = true;
-        createInfo.memoryUsage                     = grfx::MEMORY_USAGE_GPU_ONLY;
-        createInfo.initialState                    = grfx::RESOURCE_STATE_SHADER_RESOURCE;
+        grfx::TextureCreateInfo createInfo = {};
+        createInfo.imageType               = grfx::IMAGE_TYPE_2D;
+        createInfo.width                   = mBuffer.countTexture->GetWidth();
+        createInfo.height                  = mBuffer.countTexture->GetHeight() * BUFFER_BUCKET_SIZE_PER_PIXEL;
+        createInfo.depth                   = 1;
+        createInfo.imageFormat             = grfx::FORMAT_R32G32_UINT;
+        createInfo.sampleCount             = grfx::SAMPLE_COUNT_1;
+        createInfo.mipLevelCount           = 1;
+        createInfo.arrayLayerCount         = 1;
+        createInfo.usageFlags.bits.storage = true;
+        createInfo.memoryUsage             = grfx::MEMORY_USAGE_GPU_ONLY;
+        createInfo.initialState            = grfx::RESOURCE_STATE_SHADER_RESOURCE;
 
         PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mBuffer.fragmentTexture));
     }

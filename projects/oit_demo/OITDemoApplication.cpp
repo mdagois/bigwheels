@@ -22,6 +22,12 @@
 #include "OITDemoApplication.h"
 #include "ppx/graphics_util.h"
 
+static constexpr const char* ALGORITHM_UNSORTED_OVER_NAME    = "Unsorted over";
+static constexpr const char* ALGORITHM_WEIGHTED_SUM_NAME     = "Weighted sum";
+static constexpr const char* ALGORITHM_WEIGHTED_AVERAGE_NAME = "Weighted average";
+static constexpr const char* ALGORITHM_DEPTH_PEELING_NAME    = "Depth peeling";
+static constexpr const char* ALGORITHM_BUFFER_NAME           = "Buffer";
+
 static constexpr float MESH_SCALE_DEFAULT = 2.0f;
 static constexpr float MESH_SCALE_MIN     = 1.0f;
 static constexpr float MESH_SCALE_MAX     = 5.0f;
@@ -310,14 +316,14 @@ void OITDemoApp::FillSupportedAlgorithmData()
         PPX_ASSERT_MSG(mSupportedAlgorithmNames.size() == mSupportedAlgorithmIds.size(), "supported algorithm data is out-of-sync");
     };
 
-    addSupportedAlgorithm("Unsorted over", ALGORITHM_UNSORTED_OVER);
-    addSupportedAlgorithm("Weighted sum", ALGORITHM_WEIGHTED_SUM);
+    addSupportedAlgorithm(ALGORITHM_UNSORTED_OVER_NAME, ALGORITHM_UNSORTED_OVER);
+    addSupportedAlgorithm(ALGORITHM_WEIGHTED_SUM_NAME, ALGORITHM_WEIGHTED_SUM);
     if (GetDevice()->IndependentBlendingSupported()) {
-        addSupportedAlgorithm("Weighted average", ALGORITHM_WEIGHTED_AVERAGE);
+        addSupportedAlgorithm(ALGORITHM_WEIGHTED_AVERAGE_NAME, ALGORITHM_WEIGHTED_AVERAGE);
     }
-    addSupportedAlgorithm("Depth peeling", ALGORITHM_DEPTH_PEELING);
+    addSupportedAlgorithm(ALGORITHM_DEPTH_PEELING_NAME, ALGORITHM_DEPTH_PEELING);
     if (GetDevice()->FragmentStoresAndAtomicsSupported()) {
-        addSupportedAlgorithm("Buffer", ALGORITHM_BUFFER);
+        addSupportedAlgorithm(ALGORITHM_BUFFER_NAME, ALGORITHM_BUFFER);
     }
 }
 
@@ -360,17 +366,16 @@ void OITDemoApp::Setup()
     ParseCommandLineOptions();
 
     void (OITDemoApp::*setupFuncs[])() =
-    {
-        &OITDemoApp::SetupUnsortedOver,
-        &OITDemoApp::SetupWeightedSum,
-        &OITDemoApp::SetupWeightedAverage,
-        &OITDemoApp::SetupDepthPeeling,
-        &OITDemoApp::SetupBuffer,
-    };
+        {
+            &OITDemoApp::SetupUnsortedOver,
+            &OITDemoApp::SetupWeightedSum,
+            &OITDemoApp::SetupWeightedAverage,
+            &OITDemoApp::SetupDepthPeeling,
+            &OITDemoApp::SetupBuffer,
+        };
     static_assert(sizeof(setupFuncs) / sizeof(setupFuncs[0]) == ALGORITHMS_COUNT, "Algorithm setup func count mismatch");
 
-    for(const Algorithm algorithm : mSupportedAlgorithmIds)
-    {
+    for (const Algorithm algorithm : mSupportedAlgorithmIds) {
         PPX_ASSERT_MSG(algorithm >= 0 && algorithm < ALGORITHMS_COUNT, "unknown algorithm");
         (this->*setupFuncs[algorithm])();
     }
@@ -414,7 +419,7 @@ void OITDemoApp::Update()
         shaderGlobals.depthPeelingFrontLayerIndex = std::max(0, mGuiParameters.depthPeeling.startLayer);
         shaderGlobals.depthPeelingBackLayerIndex  = std::min(DEPTH_PEELING_LAYERS_COUNT - 1, mGuiParameters.depthPeeling.startLayer + mGuiParameters.depthPeeling.layersCount - 1);
 
-        shaderGlobals.bufferFragmentsMaxCount  = std::min(BUFFER_BUCKET_SIZE_PER_PIXEL, mGuiParameters.buffer.fragmentsMaxCount);
+        shaderGlobals.bufferFragmentsMaxCount = std::min(BUFFER_BUCKET_SIZE_PER_PIXEL, mGuiParameters.buffer.fragmentsMaxCount);
 
         mShaderGlobalsBuffer->CopyFromSource(sizeof(shaderGlobals), &shaderGlobals);
     }
@@ -434,7 +439,7 @@ void OITDemoApp::UpdateGUI()
 
         ImGui::Separator();
         ImGui::Text("Model");
-        const char* meshesChoices[] =
+        const char* const meshesChoices[] =
             {
                 "Monkey",
                 "Horse",
@@ -459,8 +464,8 @@ void OITDemoApp::UpdateGUI()
 
         switch (GetSelectedAlgorithm()) {
             case ALGORITHM_UNSORTED_OVER: {
-                ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
-                const char* faceModeChoices[] =
+                ImGui::Text(ALGORITHM_UNSORTED_OVER_NAME);
+                const char* const faceModeChoices[] =
                     {
                         "All",
                         "Back first, then front",
@@ -472,8 +477,8 @@ void OITDemoApp::UpdateGUI()
                 break;
             }
             case ALGORITHM_WEIGHTED_AVERAGE: {
-                ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
-                const char* typeChoices[] =
+                ImGui::Text(ALGORITHM_WEIGHTED_AVERAGE_NAME);
+                const char* const typeChoices[] =
                     {
                         "Fragment count",
                         "Exact coverage",
@@ -483,16 +488,16 @@ void OITDemoApp::UpdateGUI()
                 break;
             }
             case ALGORITHM_DEPTH_PEELING: {
-                ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
+                ImGui::Text(ALGORITHM_DEPTH_PEELING_NAME);
                 ImGui::SliderInt("DP start layer", &mGuiParameters.depthPeeling.startLayer, 0, DEPTH_PEELING_LAYERS_COUNT - 1);
                 ImGui::SliderInt("DP layers count", &mGuiParameters.depthPeeling.layersCount, 1, DEPTH_PEELING_LAYERS_COUNT);
                 break;
             }
             case ALGORITHM_BUFFER: {
-                ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
+                ImGui::Text(ALGORITHM_BUFFER_NAME);
                 ImGui::SliderInt("BU fragments max count", &mGuiParameters.buffer.fragmentsMaxCount, 1, BUFFER_BUCKET_SIZE_PER_PIXEL);
-               break;
-           }
+                break;
+            }
             default: {
                 break;
             }
@@ -534,13 +539,13 @@ void OITDemoApp::RecordOpaque()
 void OITDemoApp::RecordTransparency()
 {
     void (OITDemoApp::*recordFuncs[])() =
-    {
+        {
             &OITDemoApp::RecordUnsortedOver,
             &OITDemoApp::RecordWeightedSum,
             &OITDemoApp::RecordWeightedAverage,
             &OITDemoApp::RecordDepthPeeling,
             &OITDemoApp::RecordBuffer,
-    };
+        };
     static_assert(sizeof(recordFuncs) / sizeof(recordFuncs[0]) == ALGORITHMS_COUNT, "Algorithm record func count mismatch");
 
     const Algorithm algorithm = GetSelectedAlgorithm();
