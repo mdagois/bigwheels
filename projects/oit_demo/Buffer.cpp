@@ -14,8 +14,6 @@
 
 #include "OITDemoApplication.h"
 
-static bool sTextureNeedClear = true;
-
 void OITDemoApp::SetupBuffer()
 {
     // Count texture
@@ -222,6 +220,7 @@ void OITDemoApp::SetupBuffer()
 
 void OITDemoApp::RecordBuffer()
 {
+    static bool sTextureNeedClear = true;
     if (sTextureNeedClear) {
         mCommandBuffer->TransitionImageLayout(
             mBuffer.clearPass,
